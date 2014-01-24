@@ -666,7 +666,7 @@ function Figure(figureNum) {
 				promptFlag = false;
 				
 				if (runMode == true || attemptingToRun == true) { console.log("Running.."); attemptingToRun = false; runMode = false; runButton(); }
-				else { console.log("Walking"); walkButton(); walkButton(); }
+				else { console.log("Walking"); walkButton(); }
 				
 			}
 			else {
