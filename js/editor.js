@@ -6,24 +6,27 @@
 *			is to mimic Watson as it is now.
 ************************************************************************************/
 
-function Editor(editor, prefix) {
-	var codeTable = document.getElementById(editor);		// the main table
+function Editor(codeTable, prefix) {
 	var selRow = 0;											// the current selected row
-	var blank = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";			// blank template for unselected row
-	var arrow = "&nbsp;&#8594;&nbsp;&nbsp;&nbsp;";			// arrow template for selected row
+	var blank = "&nbsp;&nbsp;&nbsp;";			// blank template for unselected row
+	var arrow = "&nbsp;&#8594;&nbsp;";			// arrow template for selected row
 	var indent = "&nbsp;&nbsp;&nbsp;"						// indention used for inside brackets
 	var variableCount = 0;									// keeps count of the amount of variables
 	var funcCount = 0;										// keeps count of number of functions
 	var programStart = 0;									// the line the main program starts
 	var firstMove = false;									// keeps track if the user has added something to the main program
-	var innerTableTemplate = "<table class='innerTable" + prefix + "'" + "><tr><td class='codeTd'>&nbsp;&nbsp;</td><td class='codeTd'>" + blank + "</td></tr></table>";	// template used for a newly added row in the codeTable
-	var innerTableArrowTemplate = "<table class='innerTable" + prefix + "'" + "><tr><td class='codeTd'>&nbsp;&nbsp;</td><td class='codeTd'>" + arrow + "</td></tr></table>"; // template used for a newly selected row
+	var innerTableTemplate = "<table class='innerTable" + prefix + "'><tr><td class='codeTd'>&nbsp;&nbsp;</td><td class='codeTd'>" + blank + "</td></tr></table>";	// template used for a newly added row in the codeTable
+	var innerTableArrowTemplate = "<table class='innerTable" + prefix + "'><tr><td class='codeTd'>&nbsp;&nbsp;</td><td class='codeTd'>" + arrow + "</td></tr></table>"; // template used for a newly selected row
 	var green = "#007500";
 	var blue = "#0000FF";
 	var black = "#000000";
 	var funcList = [];									// an array of currently declared functions
 	var rowType = [];
-	var funcCallCount = 0;
+	var curLine;
+	var nextLine;
+	var terminate = false;
+	var promptFlag = false;
+	var insideFunction = false;
 	
 	this.addVariable = addVariable;
 	this.addOneLineElement = addOneLineElement;
@@ -215,11 +218,11 @@ function Editor(editor, prefix) {
 			var innerTable = codeTable.rows[i].cells[0].children[0];						// grab the inner table of this row
 			var numCells = innerTable.rows[0].cells.length									// grab the number of cells in this row
 			for (var j = 0; j < numCells; j++) {											// iterate throughout these cells
-				if (innerTable.rows[0].cells[j].innerText.indexOf("{") >= 0) {				// if we found a '{'
+				if (innerTable.rows[0].cells[j].textContent.indexOf("{") >= 0) {				// if we found a '{'
 					if (!firstBrack) firstBrack = true;										// if this is the first bracket, skip it
 					else bracket++;															// otherwise, count it
 				}
-				else if (innerTable.rows[0].cells[j].innerText.indexOf("}") >= 0) {			// if we found a '}'
+				else if (innerTable.rows[0].cells[j].textContent.indexOf("}") >= 0) {			// if we found a '}'
 					bracket--;																// subtract from bracket
 				}
 				
@@ -244,10 +247,10 @@ function Editor(editor, prefix) {
 			for (var j = numCells - 1; j >= 0; j--) {									// start at num cells - 1
 				if (firstLoop == true) { j = colInd; firstLoop = false; }				// if its the first loop, start at the specified column index
 
-				if (innerTable.rows[0].cells[j].innerText.indexOf('{') >= 0) {			// if the cell contains '{', subtract from bracket
+				if (innerTable.rows[0].cells[j].textContent.indexOf('{') >= 0) {			// if the cell contains '{', subtract from bracket
 					bracket--;
 				}
-				else if (innerTable.rows[0].cells[j].innerText.indexOf('}') >= 0) {		// if the cell contains '}'
+				else if (innerTable.rows[0].cells[j].textContent.indexOf('}') >= 0) {		// if the cell contains '}'
 					if (!firstBrack) firstBrak = true;									// if its the first bracket, don't count it
 					else bracket++;														// otherwise, count it
 				}
@@ -280,11 +283,11 @@ function Editor(editor, prefix) {
 				for (var j = 0; j < numCells; j++) {
 					if (firstLoop == true) { j = colInd; firstLoop = false; }
 					
-					if (innerTable.rows[0].cells[j].innerText.indexOf(openBracket) >= 0) {
+					if (innerTable.rows[0].cells[j].textContent.indexOf(openBracket) >= 0) {
 						if (!firstBrack) firstBrack = true;
 						else bracket++;
 					}
-					else if (innerTable.rows[0].cells[j].innerText.indexOf(closeBracket) >= 0) {
+					else if (innerTable.rows[0].cells[j].textContent.indexOf(closeBracket) >= 0) {
 						bracket--;
 					}
 					
@@ -314,10 +317,10 @@ function Editor(editor, prefix) {
 				for (var j = numCells - 1; j >= 0; j--) {
 					if (firstLoop == true) { j = colInd; firstLoop = false; }
 					
-					if (innerTable.rows[0].cells[j].innerText.indexOf(openBracket) >= 0) {
+					if (innerTable.rows[0].cells[j].textContent.indexOf(openBracket) >= 0) {
 						bracket--;
 					}
-					else if (innerTable.rows[0].cells[j].innerText.indexOf(closeBracket) >= 0) {
+					else if (innerTable.rows[0].cells[j].textContent.indexOf(closeBracket) >= 0) {
 						if (!firstBrack) firstBrack = true;
 						else bracket++;
 					}
@@ -347,38 +350,60 @@ function Editor(editor, prefix) {
 		var cell;
 		var innerTable;
 		
-		if (variableCount == 0) {															// if there are no variables initialized yet
-			for (var i = 0; i < 2; i++) {													// iterate twice
-				row = codeTable.insertRow(variableCount + i);							// insert a new row at variableCount + 2 + i (two lines for '// Scratch Pad' and blank line following)
-				cell = row.insertCell(0);													// insert a new cell here
-				cell.innerHTML = innerTableTemplate;										// put the innerTableTemplate in the new cell
-				innerTable = codeTable.rows[variableCount + i].cells[0].children[0];	// grab the innerTable object we just created
-				
-				if (i == 0) { addRow(innerTable, [ "//&nbsp;", "Variables" ], 2); addRowStyle(innerTable, [ green, green ], 2); }				// the first iteration: add '// Variables'
-				else if (i == 1) { addRow(innerTable, [ "&nbsp;" ], 2); }						// the second iteration: add a blank line
+		var insideFunctionTest = isInsideFunction();
+		if (insideFunctionTest[0] == true) {
+			var rowToInsert = insideFunctionTest[1] + 2;
+			var indentStr = findIndentation(rowToInsert);
+			row = codeTable.insertRow(rowToInsert);
+			cell = row.insertCell(0);
+			cell.innerHTML = innerTableTemplate;
+			innerTable = codeTable.rows[rowToInsert].cells[0].children[0];
 			
-				programStart++;	// increase the program start line
-				selRow++;		// increase the selected row
+			// if the element is a variable
+			if (element == "variable") {
+				addRow(innerTable, [ indentStr + "<b>var</b>&nbsp;", params[0], ";&nbsp;", "&nbsp;//", "&nbsp;" + params[1] ], 2);	// add the row
+				addRowStyle(innerTable, [ blue, black, black, green, green ], 2);							// style the row accordingly
+			}
+			else if (element == "array") {	// if its an array
+				addRow(innerTable, [ indentStr + "<b>var</b>&nbsp;", params[0], "&nbsp;=&nbsp;", "<b>new</b>&nbsp;", "Array", "(", params[1], ")", ";", "&nbsp;//&nbsp", params[2]], 2);	// add the row
+				addRowStyle(innerTable, [ blue, black, black, blue, black, black, black, black, black, green, green ], 2);											// style it accordingly
 			}
 		}
+		else {
+			if (variableCount == 0) {															// if there are no variables initialized yet
+				for (var i = 0; i < 2; i++) {													// iterate twice
+					row = codeTable.insertRow(variableCount + i);							// insert a new row at variableCount + 2 + i (two lines for '// Scratch Pad' and blank line following)
+					cell = row.insertCell(0);													// insert a new cell here
+					cell.innerHTML = innerTableTemplate;										// put the innerTableTemplate in the new cell
+					innerTable = codeTable.rows[variableCount + i].cells[0].children[0];	// grab the innerTable object we just created
+					
+					if (i == 0) { addRow(innerTable, [ "//&nbsp;", "Variables" ], 2); addRowStyle(innerTable, [ green, green ], 2); }				// the first iteration: add '// Variables'
+					else if (i == 1) { addRow(innerTable, [ "&nbsp;" ], 2); }						// the second iteration: add a blank line
+				
+					programStart++;	// increase the program start line
+					selRow++;		// increase the selected row
+				}
+			}
 
-		var row = codeTable.insertRow(variableCount + 1);							// insert a new row for the actual declaration; (variableCount + 3) because of '// Scratch Pad', blank line, and '//Variables'
-		var cell = row.insertCell(0);												// insert a new cell at the row
-		cell.innerHTML = innerTableTemplate;										// insert our inner table template
-		var innerTable = codeTable.rows[variableCount + 1].cells[0].children[0];	// grab the inner table object we just created
+			row = codeTable.insertRow(variableCount + 1);							// insert a new row for the actual declaration; (variableCount + 3) because of '// Scratch Pad', blank line, and '//Variables'
+			cell = row.insertCell(0);												// insert a new cell at the row
+			cell.innerHTML = innerTableTemplate;										// insert our inner table template
+			innerTable = codeTable.rows[variableCount + 1].cells[0].children[0];	// grab the inner table object we just created
+			
+			// if the element is a variable
+			if (element == "variable") {
+				addRow(innerTable, ["<b>var</b>&nbsp;", params[0], ";&nbsp;", "&nbsp;//", "&nbsp;" + params[1] ], 2);	// add the row
+				addRowStyle(innerTable, [ blue, black, black, green, green ], 2);							// style the row accordingly
+			}
+			else if (element == "array") {	// if its an array
+				addRow(innerTable, ["<b>var</b>&nbsp;", params[0], "&nbsp;=&nbsp;", "<b>new</b>&nbsp;", "Array", "(", params[1], ")", ";", "&nbsp;//&nbsp", params[2]], 2);	// add the row
+				addRowStyle(innerTable, [ blue, black, black, blue, black, black, black, black, black, green, green ], 2);											// style it accordingly
+			}
 		
-		// if the element is a variable
-		if (element == "variable") {
-			addRow(innerTable, ["<b>var</b>&nbsp;", params[0], ";&nbsp;", "&nbsp;//", "&nbsp;" + params[1] ], 2);	// add the row
-			addRowStyle(innerTable, [ blue, black, black, green, green ], 2);							// style the row accordingly
-		}
-		else if (element == "array") {	// if its an array
-			addRow(innerTable, ["<b>var</b>&nbsp;", params[0], "&nbsp;=&nbsp;", "<b>new</b>&nbsp;", "Array", "(", params[1], ")", ";", "&nbsp;//&nbsp", params[2]], 2);	// add the row
-			addRowStyle(innerTable, [ blue, black, black, blue, black, black, black, black, black, green, green ], 2);											// style it accordingly
+			variableCount++;	// increase the variable count
 		}
 		
 		selRow++;			// increase the selected row
-		variableCount++;	// increase the variable count
 		programStart++;		// increase the program start line
 		toggleEvents();		// toggle events to refresh the newly created row
 		refreshLineCount();	// refresh the line count
@@ -412,16 +437,72 @@ function Editor(editor, prefix) {
 		// depending on which element it is, format the row correspondingly
 		if (element == "assignment") {
 			if (params.length == 2) addRow(innerTable, [ indentStr + params[0] + "&nbsp;", "=&nbsp", params[1], ";"], 2);
+			else if (params.length == 3) addRow(innerTable, [ indentStr + params[0] + "&nbsp;", "=&nbsp;", params[1], "[", params[2], "]", ";"], 2);
 			else if (params.length == 4) addRow(innerTable, [ indentStr + params[0] + "&nbsp;", "=&nbsp", params[1] + "&nbsp;", params[2] + "&nbsp;", params[3], ';' ], 2);
 		}
 		else if (element == "write") { addRow(innerTable, [ indentStr + "document.write(", params[0], ")", ";" ], 2); }
 		else if (element == "writeln") { addRow(innerTable, [ indentStr + "document.writeln(", params[0], ")", ";" ], 2); }
-		else if (element == "stringPrompt") { addRow(innerTable, [ indentStr + "ID&nbsp;", "=&nbsp;", "prompt(", "EXPR", ",&nbsp;", "EXPR", ")", ";" ], 2); }
+		else if (element == "stringPrompt") { addRow(innerTable, [ indentStr + params[0] + "&nbsp;", "=&nbsp;", "prompt(", params[1], ",&nbsp;", params[2], ")", ";" ], 2); }
 		else if (element == "numericPrompt") { addRow(innerTable, [ indentStr + params[0] + "&nbsp;", "=&nbsp;", "parseFloat(", "prompt(", params[1], ",", params[2], ")", ")", ";" ], 2); }
-		else if (element == "functionCall") { addRow(innerTable, [ indentStr + params[0] + "(", params[1], ")", ";" ], 2); }
+		else if (element == "functionCall") { 
+			if (params.length == 1)	addRow(innerTable, [ indentStr + params[0] + "(", ")", ";" ], 2);
+			else {
+				addRow(innerTable, [ indentStr + params[0] + "(" ], 2);
+				addRowStyle(innerTable, [ black ], 2);
+				
+				var i;
+				for (i = 1; i < params.length; i++) {
+					if (i != params.length - 1) {
+						addRow(innerTable, [ params[i] + ",&nbsp;" ], i+2);
+						addRowStyle(innerTable, [ black ], i+2);
+					}
+					else {
+						addRow(innerTable, [ params[i] ], i+2);
+						addRowStyle(innerTable, [ black ], i+2);
+					}
+				}
+				
+				addRow(innerTable, [ ")", ";" ], i+2);
+				addRowStyle(innerTable, [ black, black ], i+2);
+			}
+		}
+		else if (element == 'assignmentFuncCall') {
+			if (params.length == 2) addRow(innerTable, [ indentStr + params[0], "&nbsp;=&nbsp;", params[1] + "(", ")", ";" ], 2);
+			else {
+				addRow(innerTable, [ indentStr + params[0], "&nbsp;=&nbsp;", params[1] + "(" ], 2);
+				addRowStyle(innerTable, [ black, black, black ], 2);
+				
+				var i;
+				for (i = 2; i < params.length; i++) {
+					if (i != params.length - 1) {
+						addRow(innerTable, [ params[i] + ",&nbsp;" ], i+3);
+						addRowStyle(innerTable, [ black ], i+3);
+					}
+					else {
+						addRow(innerTable, [ params[i] ], i+3);
+						addRowStyle(innerTable, [ black ], i+3);
+					}
+				}
+				
+				addRow(innerTable, [ ")", ";" ], i+3);
+				addRowStyle(innerTable, [ black, black ], i+3);
+			}
+		}
 		else if (element == "return") {
-			addRow(innerTable, [ indentStr + "return&nbsp;", param[0], ";" ], 2);
+			addRow(innerTable, [ indentStr + "<b>return</b>&nbsp;", params[0], ";" ], 2);
 			addRowStyle(innerTable, [ "blue", "black", "black" ], 2);
+		}
+		else if (element == 'arrayAssignment') {
+			addRow(innerTable, [ indentStr + params[0], '[', params[1], ']', '&nbsp;=&nbsp;', params[2] ], 2);
+			addRowStyle(innerTable, [ black, black, black ], 2);
+		}
+		else if (element == "freeExpression") {
+			for (var i = 0; i < params.length; i++) {
+				if (i == 0) addRow(innerTable, [ indentStr + params[i] ], i+2);
+				else addRow(innerTable, [ params[i] ], i+2);
+				
+				addRowStyle(innerTable, [ black ], i+2);
+			}
 		}
 		
 		selectRow(selRow+1);				// increase the selected row by one
@@ -458,9 +539,8 @@ function Editor(editor, prefix) {
 			else if (i == 2) { addRow(innerTable, [ indentStr + "}" ], 2); }
 		}
 		
-		selectRow(selRow + 3);								// increase the selected row by 3 (added three items)
-		
 		if (selRow < programStart) programStart += 3;		// if the selected row is less than the program start (editing a function), increase program start by 3
+		selectRow(selRow + 3);								// increase the selected row by 3 (added three items)
 		toggleEvents();										// toggle events
 		refreshLineCount();									// refresh the line count
 	}
@@ -572,8 +652,10 @@ function Editor(editor, prefix) {
 		var beginRow;
 		
 		// if the user hasn't edited the main program OR selected row is less than program start, we begin at the program start line
-		if (!firstMove || selRow < programStart) beginRow = programStart;
-		else beginRow = programStart - 1;	// otherwise, we begin at programStart - 1
+		//if (!firstMove || selRow < programStart) beginRow = programStart;
+		//else beginRow = programStart - 1;	// otherwise, we begin at programStart - 1
+		if (!firstMove) beginRow = programStart;
+		else beginRow = programStart - 1;
 		
 		// if we haven't added a function yet, we must insert the '// Functions' comment
 		if (funcCount == 0) {
@@ -630,8 +712,8 @@ function Editor(editor, prefix) {
 					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", params[1], ")&nbsp;", "//&nbsp;", params[2] ], 2);
 					addRowStyle(innerTable, [ blue, black, black, black, green, green ], 2);
 				}
-				else if (params.lengh == 2) {
-					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", ")&nbsp;", "//&nbsp;", params[2] ], 2);
+				else if (params.length == 2) {
+					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", ")&nbsp;", "//&nbsp;", params[1] ], 2);
 					addRowStyle(innerTable, [ blue, black, black, green, green ], 2);
 				}	
 			}
@@ -668,6 +750,46 @@ function Editor(editor, prefix) {
 		}
 	}
 	
+	function isInsideFunction() {
+		if (selRow >= programStart) return false;
+		
+		var innerTable;
+		var cellText;
+		var bracketCount = 1;
+		var firstBracket = false;
+		var done = false;
+		var start;
+		if (firstMove) start = programStart - 3;
+		else start = programStart - 2;
+		var end;
+		var i;
+		
+		while (!done) {
+			for (i = start; i >= 0; i--) {
+				innerTable = codeTable.rows[i].cells[0].children[0];
+				if (innerTable.rows[0].cells.length == 3) {
+					cellText = innerTable.rows[0].cells[2].textContent;
+					if (cellText.indexOf("}") >= 0) {
+						if (firstBracket == false) firstBracket = true;
+						else bracketCount++;
+					}
+					else if (cellText.indexOf("{") >= 0) bracketCount--;
+				}
+				
+				if (bracketCount == 0) break;
+			}
+			
+			end = i - 1;
+
+			if (selRow > end && selRow <= start) return [ true, end ];
+			else { firstBracket = false; bracketCount = 1; start = end - 2; }
+			
+			if (start <= 0) done = true;
+		}
+		
+		return [ false ];
+	}
+	
 	// deleteFunction() checks to see what the element is that is requested to be deleted, and deletes that element
 	function deleteFunction(rowNum, colNum) {
 		var innerTable = codeTable.rows[rowNum].cells[0].children[0];			// grab the inner table that needs to be deleted
@@ -689,24 +811,24 @@ function Editor(editor, prefix) {
 		
 		if (rowLength == 6) {
 			for (var i = 0; i < rowLength; i++) {
-				if (row.cells[i].innerText.indexOf("=") >= 0) { return true; }		// check for assignment
-				if (row.cells[i].innerText.indexOf("write") >= 9) { return true; }	// check for a write/writeln
+				if (row.cells[i].textContent.indexOf("=") >= 0) { return true; }		// check for assignment
+				if (row.cells[i].textContent.indexOf("write") >= 9) { return true; }	// check for a write/writeln
 			}
 		}
 		else if (rowLength == 10) {
 			for (var i = 0; i < rowLength; i++) {
-				if (row.cells[i].innerText.indexOf("prompt") >= 0) { return true; }	// check for a prompt
+				if (row.cells[i].textContent.indexOf("prompt") >= 0) { return true; }	// check for a prompt
 			}
 		}
 		else if (rowLength == 12) {
 			for (var i = 0; i < rowLength; i++) {
-				if (row.cells[i].innerText.indexOf("prompt") >= 0) { return true; }	// check for a prompt again (numeric prompt)
+				if (row.cells[i].textContent.indexOf("prompt") >= 0) { return true; }	// check for a prompt again (numeric prompt)
 			}
 		}
 		else {
-			if (row.cells[2].innerText.indexOf("return") >= 0) return true;			// check for a return
-			if (row.cells[2].innerText.indexOf("FUNCTION") >= 0) return true;		// check for a function that hasn't been renamed
-			if (functionExists(row.cells[2].innerText)) return true;				// check to see if the function exists that has been named
+			if (row.cells[2].textContent.indexOf("return") >= 0) return true;			// check for a return
+			if (row.cells[2].textContent.indexOf("FUNCTION") >= 0) return true;		// check for a function that hasn't been renamed
+			if (functionExists(row.cells[2].textContent)) return true;				// check to see if the function exists that has been named
 		}
 	}
 
@@ -742,10 +864,10 @@ function Editor(editor, prefix) {
 			var innerTable = codeTable.rows[i].cells[0].children[0];					// grab the inner table for this row in the code table
 			var numCells = innerTable.rows[0].cells.length;								// grab the number of cells in this inner table
 			for (var j = 0; j < numCells; j++) {										// iterate throughout the cells
-				if (innerTable.rows[0].cells[j].innerText.indexOf('{') >= 0) {			// if an open bracket, add one to bracket
+				if (innerTable.rows[0].cells[j].textContent.indexOf('{') >= 0) {			// if an open bracket, add one to bracket
 					bracket++;
 				}
-				else if (innerTable.rows[0].cells[j].innerText.indexOf('}') >= 0) {		// if a close bracket, subtract one from bracket
+				else if (innerTable.rows[0].cells[j].textContent.indexOf('}') >= 0) {		// if a close bracket, subtract one from bracket
 					bracket--;
 				}
 			}
@@ -762,16 +884,16 @@ function Editor(editor, prefix) {
 	// For example, we don't want the user moving into the variable sections
 	function checkValidRow(row, rowNum) {
 
-		if (row.cells[2].innerText.indexOf("//") >= 0) return false;								// don't let the user edit a comment
-		if (row.cells[2].innerText == '\xA0') return false;											// don't let the user edit a blank line
-		if (row.cells[2].innerText.indexOf("{") >= 0 && rowNum >= programStart) return false;		// don't let the user edit before a '{'
+		if (row.cells[2].textContent.indexOf("//") >= 0) return false;								// don't let the user edit a comment
+		if (row.cells[2].textContent == '\xA0') return false;											// don't let the user edit a blank line
+		if (row.cells[2].textContent.indexOf("{") >= 0 && rowNum >= programStart) return false;		// don't let the user edit before a '{'
 		if (rowNum < variableCount + 3) return false;												// don't let the user edit in the variable space
 		
 		// the following if statements ensure that a user doesn't edit before the program start (in the variable or function space.. unless its inside a function)
 		if ((selRow < programStart && rowNum < programStart + 1) || (rowNum < programStart)) {
-			if (row.cells[2].innerText.indexOf("{") >= 0 && selRow > rowNum) return false;
-			if (row.cells[2].innerText.indexOf("}") >= 0 && selRow < rowNum) return false;
-			if (row.cells[2].innerText.indexOf("function") >= 0) return false;
+			if (row.cells[2].textContent.indexOf("{") >= 0 && selRow > rowNum) return false;
+			if (row.cells[2].textContent.indexOf("}") >= 0 && selRow < rowNum) return false;
+			if (row.cells[2].textContent.indexOf("function") >= 0) return false;
 		}
 		return true;
 	}
@@ -795,7 +917,7 @@ function Editor(editor, prefix) {
 		for (var i = 0; i < codeTable.rows.length; i++) {
 			innerTable = codeTable.rows[i].cells[0].children[0];
 			if (i <= 9) innerTable.rows[0].cells[0].innerHTML = i + "&nbsp;";
-			else innerTable.rows[0].cells[0].innerText = i;
+			else innerTable.rows[0].cells[0].textContent = i;
 		}
 	}
 
@@ -843,6 +965,7 @@ function Editor(editor, prefix) {
 	var charCountStart = [ ];
 	var charCountEnd = [ ];
 	var codeStrLen;
+	var rowNum = -1;
 	
 	this.getEditorText = getEditorText;
 	function getEditorText() {
@@ -857,12 +980,13 @@ function Editor(editor, prefix) {
 		var firstLine = false;
 		var firstChar = false;
 		var bracketFlag = false;
+		var funcCall = false;
 		
 		for (var i = 0; i < codeTable.rows.length; i++) {
 			innerTable = codeTable.rows[i].cells[0].children[0];
 			numCells = innerTable.rows[0].cells.length;
 			if (numCells == 2) { continue; }
-			cellText = innerTable.rows[0].cells[2].innerText;
+			cellText = innerTable.rows[0].cells[2].textContent;
 			
 			if (numCells == 3) {
 				if (cellText.indexOf("}") < 0 && cellText.indexOf("{") < 0 && cellText.indexOf("else") < 0) { rowType.push("blankLine"); continue; }
@@ -881,11 +1005,13 @@ function Editor(editor, prefix) {
 			else if(cellText.indexOf("var") >= 0) rowType.push("variable");
 			else if(cellText.indexOf("{") >= 0) rowType.push("closeBracket");
 			else if(cellText.indexOf("}") >= 0) rowType.push("openBracket");
-			else if(innerTable.rows[0].cells[3].innerText.indexOf("=") >= 0) rowType.push("assignment");
-			else { rowType.push("functionCall"); }
+			else if(innerTable.rows[0].cells[4].textContent.indexOf("parse") >= 0) rowType.push("prompt");
+			else if(innerTable.rows[0].cells[4].textContent.indexOf("prompt") >= 0) rowType.push("prompt");
+			else if(innerTable.rows[0].cells[3].textContent.indexOf("=") >= 0) rowType.push("assignment");
+			else { rowType.push("functionCall"); funcCall = true; }
 			
 			for (var j = 2; j < numCells; j++) {
-				cellText = innerTable.rows[0].cells[j].innerText;
+				cellText = innerTable.rows[0].cells[j].textContent;
 				if (cellText.indexOf("//") >= 0) break;
 				if (cellText.indexOf("document.writeln") >= 0) {
 					if (firstChar == false) { firstChar = true; charCountStart.push(charCount + 1); lineNums.push(i); }
@@ -906,6 +1032,7 @@ function Editor(editor, prefix) {
 						cellText = tempText;
 						firstLine = true;
 					}
+					
 					codeStr += cellText;
 					if (firstChar == false && bracketFlag == false) { firstChar = true; charCountStart.push(charCount + 1); lineNums.push(i); }
 					if (!firstLine) firstLine = true;
@@ -920,6 +1047,9 @@ function Editor(editor, prefix) {
 			bracketFlag = false;
 		}
 		
+		rowNum = lineNums[0];
+		selRow = rowNum;
+		
 		codeStr = codeStr.replace("\xA0", " ");
 		codeStr = codeStr.replace("\x1E", " ");
 		var tCodeStr = "";
@@ -933,7 +1063,156 @@ function Editor(editor, prefix) {
 	}
 	
 	this.selectLine = selectLine;
-	function selectLine(start, end, varCount) {
+	this.isNewLine = isNewLine;
+	this.checkPromptFlag = checkPromptFlag;
+	
+	function isNewLine(start, end) {
+		if (start == -1 && end == -1) {
+
+			return [ true, rowNum ];
+		}
+		for (var i = 0; i < charCountStart.length; i++) {
+			if (start >= charCountStart[i] && end <= charCountEnd[i] + 1) { 
+				if (lineNums[i] == rowNum) { return [ false, rowNum ]; }
+				else {
+					rowNum = lineNums[i];
+					if (rowType[rowNum] == 'prompt') { promptFlag = true; }
+					return [true, selRow];
+				}
+			}
+		}
+		return [ false, rowNum ];
+	}
+	
+	function checkPromptFlag() {
+		if (promptFlag) {
+			promptFlag = false;
+			selectLine(rowNum);
+			var promptStr;
+			var innerTable = codeTable.rows[rowNum].cells[0].children[0];
+			for (var i = 2; i < innerTable.rows[0].cells.length; i++) {
+				cell = innerTable.rows[0].cells[i];
+				if (cell.textContent.indexOf('"') >= 0) {
+					promptStr = cell.textContent;
+				}
+			}
+			return [ true, promptStr ];
+		}
+		return [ false, "" ];
+	}
+	
+	function selectLine(row) {
+		var innerTable;
+		returnToNormalColor();
+		for (var i = 0; i < codeTable.rows.length; i++) {
+			innerTable = codeTable.rows[i].cells[0].children[0];
+			innerTable.rows[0].cells[1].innerHTML = blank;
+		}	
+		highlightLine(row);
+		innerTable = codeTable.rows[row].cells[0].children[0];
+		innerTable.rows[0].cells[1].innerHTML = arrow;
+		selRow = rowNum;
+	}
+
+	function selectLine3(start, end, varCount, haltFlag) {
+		if (rowNum == -1 && nextLine == -1) return false;
+		
+		if (start == -1 && end == -1) {
+			if (rowNum != nextLine && terminate == false) {
+				returnToNormalColor();
+				highlightLine(nextLine);
+			
+				var innerTable;
+				innerTable = codeTable.rows[selRow].cells[0].children[0];
+				innerTable.rows[0].cells[1].innerHTML = blank;
+				
+				innerTable = codeTable.rows[nextLine].cells[0].children[0];
+				innerTable.rows[0].cells[1].innerHTML = arrow;
+				selRow = nextLine;
+				terminate = true;
+				return true;
+			}
+			else {
+				terminate = false;
+				returnToNormalColor();
+				highlightLine(codeTable.rows.length - 1);
+			
+				var innerTable;
+				innerTable = codeTable.rows[selRow].cells[0].children[0];
+				innerTable.rows[0].cells[1].innerHTML = blank;
+				
+				innerTable = codeTable.rows[codeTable.rows.length - 1].cells[0].children[0];
+				innerTable.rows[0].cells[1].innerHTML = arrow;
+				selRow = codeTable.rows.length - 1;
+				nextLine = lineNums[0];
+				return false;
+			}
+		}
+		if (start == 0 && end == codeStrLen) return false;
+
+		
+		for (var i = 0; i < charCountStart.length; i++) {
+			if (rowNum == lineNums[lineNums.length - 2] && nextLine == lineNums[lineNums.length - 1]) {
+				rowNum = nextLine;
+				nextLine = -1;
+				break;
+			}
+			if (start >= charCountStart[i] && end <= charCountEnd[i]) { 
+				rowNum = nextLine;
+				if (nextLine != -1) nextLine = lineNums[i];
+				break;
+			}
+		}
+		
+		if (rowNum == selRow) {
+			if (haltFlag == true) { return true; }
+			else return false;
+		}
+		
+		if (rowNum == nextLine) {
+			if (haltFlag == true) {
+				returnToNormalColor();
+				highlightLine(nextLine);
+			
+				var innerTable;
+				innerTable = codeTable.rows[selRow].cells[0].children[0];
+				innerTable.rows[0].cells[1].innerHTML = blank;
+				
+				innerTable = codeTable.rows[nextLine].cells[0].children[0];
+				innerTable.rows[0].cells[1].innerHTML = arrow;
+				
+				selRow = nextLine;
+				return true;
+			}
+			else return false;
+		}
+		
+
+		if (rowNum == -1) { return false; }
+	
+		returnToNormalColor();
+		highlightLine(rowNum);
+		
+		var innerTable;
+		innerTable = codeTable.rows[selRow].cells[0].children[0];
+		innerTable.rows[0].cells[1].innerHTML = blank;
+		
+		innerTable = codeTable.rows[rowNum].cells[0].children[0];
+		innerTable.rows[0].cells[1].innerHTML = arrow;
+		selRow = rowNum;
+		
+		if (nextLine == -1) return false;
+		else return true;
+	}
+	
+	this.reset = reset;
+	function reset() {
+		selectLine(codeTable.rows.length - 1);
+		rowNum = lineNums[0];
+		selRow = rowNum;
+	}
+	
+	function selectLine2(start, end, varCount, haltFlag) {
 		if (start == -1 && end == -1) {
 			returnToNormalColor();
 			highlightLine(codeTable.rows.length - 1);
@@ -947,24 +1226,24 @@ function Editor(editor, prefix) {
 			selRow = codeTable.rows.length - 1;
 		}
 		if (start == 0 && end == codeStrLen) return false;
-		
+
 		var rowNum = -1;
 		var fallBack = -1;
 		var flag = false;
 		for (var i = 0; i < charCountStart.length; i++) {
-			if (start >= charCountStart[i] && end <= charCountEnd[i]) { rowNum = lineNums[i]; flag = true; break; }
+			if (start == charCountStart[i] && end == charCountEnd[i]) { rowNum = lineNums[i]; nextLine = lineNums[i]; break; }
 			if (start == charCountStart[i]) fallBack = lineNums[i];
 		}
-		if (flag == false) return false;
 		
 		if (start != -1) {
 			if (rowNum == -1) rowNum = fallBack;
-			if (rowNum == -1) return false;
+			if (rowNum == -1) { return false; }
 		}
 		else rowNum = codeTable.rows.length - 1;
 		
 		if (rowNum == selRow) {
-			return false;
+			if (haltFlag == true) { return true; }
+			else return false;
 		}
 		
 		returnToNormalColor();

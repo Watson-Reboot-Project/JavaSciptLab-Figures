@@ -1,20 +1,19 @@
 body {
     background-color: white;
     color: black;
-    font-size: 87.5%;
-    font-family: Courier New, 'Lucida Sans Unicode';
-    line-height: 1.5;
+    /* font-size: 87.5%; */
+    font-family: monospace;
+    line-height: 1;
     text-align: left;
 }
 
 .body {
     margin: 0 auto;
-    width: 70%;
-    clear: both;
+    width: 100%;
 }
 
 button[type=button] {
-    width: 48%;
+    width: 40%;
     height: 2.6em;
 }
 
@@ -24,7 +23,7 @@ button[type=button] {
 }
 
 .leftcontent {
-    width: 50%;
+    width: 96%;
     float: left;
     border-radius: 5px;
     -moz-border-radius: 5px;
@@ -45,9 +44,12 @@ button[type=button] {
 }
 
 div {
+	width:95%;
+	margin:auto auto;
+	font-family:monospace;
 	overflow: auto;
 }
-
+/*
 .middlecontent {
     width: auto;
     float: left;
@@ -57,18 +59,18 @@ div {
     margin-top: 2.9%;
     padding-top: 1px;
     padding-right: 1px;
+    background-color:lightgrey;
+    opacity:0.5;
 }
-
+*/
 .toprightcontent {
-    width: 25%;
+    width: 96%;
     float: left;
-    background-color: white;
     border-radius: 5px;
     -moz-border-radius: 5px;
     -webkit-border-radius: 5px;
-    margin-top: 1%;
-    padding-left: 5.5px;
-    padding-top: 1px;
+    margin-top: 0.5%;
+    /* padding-left: 5.5px; */
 }
 
 .toprightcontent h4 {
@@ -78,28 +80,33 @@ div {
 
 .righttxtarea {
     width: 96%;
-	height: 100%;
+	/* height: 100%; */
     resize: none;
 }
 
 .rightbuttons {
-    padding-left: 1px;
+	width:50%;
+	height:100%;
+	padding-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
     padding-bottom: 2px;
 }
 
 .bottomrightcontent {
-    width: 25%;
+    width: 96%;
     float: left;
     border-radius: 5px;
     -moz-border-radius: 5px;
     -webkit-border-radius: 5px;
     margin-top: 0.5%;
-    padding-left: 5.5px;
+    /* padding-left: 5.5px; */
 }
 
 .bottomrighttxtarea {
+	overflow:auto;
     width: 96%;
-	height: 215px;
+	height: 100px;
     resize: none;
 	border: 1px solid black;
 }
@@ -120,14 +127,127 @@ div {
 	border-collapse:collapse;
 	padding: 0px;
 	margin: 0px;
-	font-family:Courier New;
 	white-space: nowrap;
 }
 .codeTableTd {
 	white-space: nowrap;
 	margin: 0px;
 }
-.innerTable1 {
+.innerTable5 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable6 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable7 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable10 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable12 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable13 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable14 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable16 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable18 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable19 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable21 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable22 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable23 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable24 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable27 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable28 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable29 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable30 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable32 {
+	border: none;
+	border-collapse:collapse;
+	padding: 0px;
+	margin: 0px;
+}
+.innerTable38 {
 	border: none;
 	border-collapse:collapse;
 	padding: 0px;

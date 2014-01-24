@@ -42,7 +42,6 @@ var Interpreter = function (code, opt_initFunc, _figures) {
 		}
 	];
 	this.figures = _figures;
-	this.doneExecFlag = false;
 };
 
 /**
@@ -1037,6 +1036,7 @@ Interpreter.prototype.createObject = function (parent) {
 		obj.toString = function () {
 			var strs = [];
 			for (var i = 0; i < this.length; i++) {
+				//console.log(this.properties);
 				strs[i] = this.properties[i].toString();
 			}
 			return strs.join(',');
@@ -1268,6 +1268,24 @@ Interpreter.prototype.getValueFromScope = function (name) {
 };
 
 /**
+ * Retrieves a value from the scope chain.
+ * @param {!Object} name Name of variable.
+ * @throws {string} Error if identifier does not exist.
+ */
+Interpreter.prototype.getScopeFromValue = function (name) {
+	var scope = this.getScope();
+	name = name.toString();
+	while (scope) {
+		if (this.hasProperty(scope, name)) {
+			return scope;
+		}
+		scope = scope.parentScope;
+	}
+	throw 'Unknown identifier: ' + name;
+};
+
+
+/**
  * Sets a value to the currest scope.
  * @param {string} name Name of variable.
  * @param {*} value Value.
@@ -1441,7 +1459,12 @@ Interpreter.prototype['stepAssignmentExpression'] = function () {
 		}
 		this.setValue(leftSide, value);
 		this.stateStack[0].value = value;
-		this.figures.updateVariables("add", this.getScope(), leftSide, value);
+
+		if (leftSide.data) {
+			this.figures.updateVariables("add", this.getScopeFromValue(leftSide.data), leftSide, value);
+		}
+		else if (!leftSide.length) this.figures.updateVariables("add", this.getScopeFromValue(leftSide), leftSide, value);
+		
 	}
 };
 
@@ -1556,7 +1579,6 @@ Interpreter.prototype['stepBlockStatement'] = function () {
 			node : node.body[n]
 		});
 	} else {
-		this.doneExecFlag = true;
 		this.stateStack.shift();
 	}
 };
@@ -1680,23 +1702,6 @@ Interpreter.prototype['stepCallExpression'] = function () {
 				throw new TypeError('function not a function (huh?)');
 			}
 		} else {
-		/*
-			console.log(this.stateStack[0]);
-			if (this.stateStack[0].doneCallee_ == true) console.log("Done callee");
-			if (this.stateStack[0].node.type == "CallExpression") console.log("Call expression.");
-			console.log(this.stateStack[0].node.callee.type);
-			if (this.stateStack[0].doneCallee_ == true && this.stateStack[0].doneExec == true && this.stateStack[0].node.type == "CallExpression" && this.stateStack[0].node.callee.type == "Identifier") {
-				console.log("Deleting.");
-				var flag = false;
-				console.log(this.stateStack[0].node.callee.name);
-				console.log(this.funcList.length);
-				for (var i = 0; i < this.funcList.length; i++) {
-					console.log(this.funcList[i]);
-					if (this.funcList[i] == this.stateStack[0].node.callee.name) { flag = true; break; }
-				}
-				if (flag) this.figures.updateVariables("del", this.getScope(), this.stateStack[0].node.arguments[0].name);
-			}
-			*/
 			this.stateStack.shift();
 			this.stateStack[0].value = state.isConstructor_ ?
 				state.funcThis_ : state.value;
@@ -2146,8 +2151,10 @@ Interpreter.prototype['stepUpdateExpression'] = function () {
 		var changeValue;
 		if (node.operator == '++') {
 			changeValue = this.createPrimitive(leftValue + 1);
+			this.figures.updateVariables("add", this.getScope(), leftSide, leftValue + 1);
 		} else if (node.operator == '--') {
 			changeValue = this.createPrimitive(leftValue - 1);
+			this.figures.updateVariables("add", this.getScope(), leftSide, leftValue - 1);
 		} else {
 			throw 'Unknown update expression: ' + node.operator;
 		}
@@ -2185,7 +2192,11 @@ Interpreter.prototype['stepVariableDeclarator'] = function () {
 		this.setValue(this.createPrimitive(node.id.name),
 			node.init ? state.value : this.UNDEFINED);
 		this.stateStack.shift();
-		this.figures.updateVariables("add", this.getScope(), node.id.name, state.value);
+
+		if (state.value && state.value.length > 0) {
+			this.figures.updateVariables("add", this.getScope(), node.id.name, "Array(" + state.value.length + ")");
+		}
+		else this.figures.updateVariables("add", this.getScope(), node.id.name, state.value);
 	}
 };
 
