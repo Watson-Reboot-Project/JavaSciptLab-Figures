@@ -637,7 +637,7 @@ function Figure(figureNum) {
 		promptInput = "";
 		return temp;
 	}
-	
+
 	function promptFunc(promptType, text1) {
 		var cell = outputTable.rows[outputTable.rows.length - 1].cells[0];
 		cell.setAttribute("style", "height:1em");
@@ -655,6 +655,7 @@ function Figure(figureNum) {
 		cell.setAttribute("type", "number");
 		editCellID = id;
 		
+		console.log("Prompt:" + promptType);
 		if (promptType == "numeric") setupNumericPrompt(id);
 		else setupStringPrompt(id);
 		
@@ -666,6 +667,7 @@ function Figure(figureNum) {
 	}
 	
 	function setupNumericPrompt(id) {
+		console.log("Setting this.");
 		$("#" + id).keyup(function (event) {
 			var code = event.which || event.keyCode;
 			if (code == 16) {
@@ -677,13 +679,16 @@ function Figure(figureNum) {
 	
 		$("#" + id).keydown(function (event) {
 			var code = event.which || event.keyCode;
+			console.log("Here.");
+			console.log("Code: " + code);
 			if (code == 16) {
 				shiftDown = true;	// shift key, don't allow anything while this is held down
 			}
 			else if (code == 8 || (code >= 37 && code <= 57) || (code >= 96 && code <= 105)) {
 				// allow this
 			}
-			else if (code == 109 || code == 189) {	// a dash (negative number possibility)
+			else if (code == 109 || code == 189 || code == 173) {	// a dash (negative number possibility)
+				console.log("Dash detected.");
 				if (promptInput.length != 0) { event.preventDefault(); return; } // only allow a dash at the 0 index position
 			}
 			else if (code == 10 || code == 13) {
