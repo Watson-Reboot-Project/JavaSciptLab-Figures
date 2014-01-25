@@ -34,6 +34,7 @@ function Figure(figureNum) {
 	var promptFlag = false;
 	var editCellID;
 	var attemptingToRun = false;
+	var shiftDown = false;
 	
 	this.walkButton = walkButton;
 	this.runButton = runButton;
@@ -637,7 +638,7 @@ function Figure(figureNum) {
 		return temp;
 	}
 	
-	function promptFunc(text1) {
+	function promptFunc(promptType, text1) {
 		var cell = outputTable.rows[outputTable.rows.length - 1].cells[0];
 		cell.setAttribute("style", "height:1em");
 		cell.textContent += text1.slice(1, text1.length - 1);
@@ -651,33 +652,100 @@ function Figure(figureNum) {
 
 		var id = "fig" + figureNum + "TD" + (outputTable.rows.length - 1);
 		cell.setAttribute("id", id);
+		cell.setAttribute("type", "number");
 		editCellID = id;
+		
+		if (promptType == "numeric") setupNumericPrompt(id);
+		else setupStringPrompt(id);
+		
+		$('#' + id).focus();
+		row = outputTable.insertRow(outputTable.rows.length);
+		row.insertCell(0);
+		
+		return promptInput;
+	}
+	
+	function setupNumericPrompt(id) {
 		$("#" + id).keyup(function (event) {
+			var code = event.which || event.keyCode;
+			if (code == 16) {
+				shiftDown = false;	// since this is key up, shift down is now false
+			}
+			
+			promptInput = document.getElementById(id).textContent;	// update the prompt input upon each key up
+		});
+	
+		$("#" + id).keydown(function (event) {
+			var code = event.which || event.keyCode;
+			if (code == 16) {
+				shiftDown = true;	// shift key, don't allow anything while this is held down
+			}
+			else if (code == 8 || (code >= 37 && code <= 57) || (code >= 96 && code <= 105)) {
+				// allow this
+			}
+			else if (code == 109 || code == 189) {	// a dash (negative number possibility)
+				if (promptInput.length != 0) { event.preventDefault(); return; } // only allow a dash at the 0 index position
+			}
+			else if (code == 10 || code == 13) {
+				// enter key, allow it for now (will be caught by key press)
+			}
+			else event.preventDefault();
+		});
+	
+		$("#" + id).keypress(function (event) {
 			var cell = document.getElementById(id);
-			if (event.which == 13) {
+			var code = event.which || event.keyCode;
+			if (shiftDown == true) {
+				event.preventDefault();	// if shift is down, ignore the key regardless of key code
+				return;
+			}	
+			
+			if (code == 10 || code == 13) {	// enter key was pressed
+				event.preventDefault();
 				if (cell.textContent == "" || cell.textContent.length == 0) {
 					alert("You should probably enter some input first!");
 					return;
 				}
 				
 				cell.contentEditable = false;
-				cell.textContent = cell.textContent.slice(0, cell.textContent.length);
-				
 				promptFlag = false;
 				
-				if (runMode == true || attemptingToRun == true) { console.log("Running.."); attemptingToRun = false; runMode = false; runButton(); }
-				else { console.log("Walking"); walkButton(); }
-				
-			}
-			else {
-				promptInput = document.getElementById(id).textContent;
+				if (runMode == true || attemptingToRun == true) { attemptingToRun = false; runMode = false; runButton(); }
+				else { walkButton(); }
 			}
 		});
-		$('#' + id).focus();
-		row = outputTable.insertRow(outputTable.rows.length);
-		row.insertCell(0);
-		
-		return promptInput;
+	}
+	
+	function setupStringPrompt(id) {
+		$("#" + id).keyup(function (event) {	
+			promptInput = document.getElementById(id).textContent;	// update the prompt input upon each key up
+		});
+	
+		$("#" + id).keydown(function (event) {
+			var code = event.which || event.keyCode;
+			if (code == 10 || code == 13) {
+				// enter key, allow it for now (will be caught by key press)
+			}
+		});
+	
+		$("#" + id).keypress(function (event) {
+			var cell = document.getElementById(id);
+			var code = event.which || event.keyCode;	
+			
+			if (code == 10 || code == 13) {	// enter key was pressed
+				event.preventDefault();
+				if (cell.textContent == "" || cell.textContent.length == 0) {
+					alert("You should probably enter some input first!");
+					return;
+				}
+				
+				cell.contentEditable = false;
+				promptFlag = false;
+				
+				if (runMode == true || attemptingToRun == true) { attemptingToRun = false; runMode = false; runButton(); }
+				else { walkButton(); }
+			}
+		});
 	}
 	
 	function appendOutput(question, text) {
@@ -728,7 +796,6 @@ function Figure(figureNum) {
 	function runButton() {
 		if (done) reset();
 	
-		console.log("Run Mode: " + runMode);
 		if (runMode == true) {
 			clearInterval(intervalID);
 			_runButton.textContent = "Run";
@@ -739,9 +806,10 @@ function Figure(figureNum) {
 			return;
 		}
 		else {
-			if (attemptingToRun == false && checkIfPrompt(true) == true) {
+			if (attemptingToRun == false && checkIfPrompt(false) == true) {
+				$("#" + editCellID).focus();
 				attemptingToRun = true;
-				_runButton.textContent = "Stop";
+				_runButton.textContent = "Pause";
 				_walkButton.textContent = "Reset";
 				return;
 			}
@@ -763,7 +831,7 @@ function Figure(figureNum) {
 		}
 		
 		_walkButton.textContent = "Reset";
-		_runButton.textContent = "Stop";
+		_runButton.textContent = "Pause";
 		if (myInterpreter === null) myInterpreter = new Interpreter(codeStr, init, thisObj);
 		
 		runMode = true;
@@ -809,7 +877,7 @@ function Figure(figureNum) {
 		while (flag == false) {
 			var promptRes = editor.checkPromptFlag();
 			if (promptRes[0] == true) {
-				promptFunc(promptRes[1]);
+				promptFunc(promptRes[1], promptRes[2]);
 				haltFlag = true;
 				promptFlag = true;
 				if (runMode == true) clearInterval(intervalID);
@@ -965,7 +1033,6 @@ function Figure(figureNum) {
 			for (var j = 0; j < 3; j++) {
 				scopeNum = getScopeNum(varArr[i][0]);
 				if (scopeNum < 0) {
-					console.log("Deleting " + varArr[i][1] + " in updatetable");
 					varArr.splice(i, 1);
 					break;
 				}
