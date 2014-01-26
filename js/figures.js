@@ -126,7 +126,7 @@ function Figure(figureNum) {
 	
 	figDiv = document.getElementById("fig" + figureNum + "Div");
 	figDiv.innerHTML = '<div class="leftcontent" readonly> \
-							<h4>&nbsp;Code Window</h4> \
+							<h4>&nbsp;Program definition</h4> \
 							<div class="txtarea" style="height:100%; min-height:200px; max-height:300px; border-style:ridge;"> \
 								<table id="fig' + figureNum + 'Editor" class="codeTable"></table> \
 							</div> \
@@ -142,7 +142,7 @@ function Figure(figureNum) {
 							</div> \
 							</div> \
 						<div class="toprightcontent" style="clear: left; "> \
-							<h4>&nbsp;&nbsp;&nbsp;Program Output</h4> \
+							<h4>&nbsp;&nbsp;&nbsp;Program input/output behavior</h4> \
 							<div id="fig' + figureNum + 'OutputBox" class="bottomrighttxtarea"> \
 							<table id="fig' + figureNum + 'OutputTable" class="righttxtarea" style="white-space:nowrap;"></table> \
 							</div> \
@@ -429,7 +429,7 @@ function Figure(figureNum) {
 		else if (figureNum == 27) {
 			editor.addVariable('variable', ['a', 'NUMERIC']);
 			editor.addVariable('variable', ['b', 'NUMERIC']);
-			editor.addFunction(['power', 'x', 'y', 'Returns numeric']);
+			editor.addFunction(['power', 'x', 'Numeric', 'y', 'Numeric', 'Returns numeric']);
 			for (var i = 0; i < 2; i++) editor.decSelRow();
 			editor.addVariable('variable', [ 'z', 'NUMERIC' ]);
 			editor.addVariable('variable', [ 'i', 'NUMERIC' ]);
@@ -454,7 +454,7 @@ function Figure(figureNum) {
 			editor.addVariable('variable', ['d', 'NUMERIC']);
 			editor.addVariable('variable', ['x', 'NUMERIC']);
 			editor.addVariable('variable', ['y', 'NUMERIC']);
-			editor.addFunction(['power', 'x', 'y', 'Returns numeric']);
+			editor.addFunction(['power', 'x', 'Numeric', 'y', 'Numeric', 'Returns numeric']);
 			for (var i = 0; i < 2; i++) editor.decSelRow();
 			editor.addVariable('variable', [ 'z', 'NUMERIC' ]);
 			editor.addVariable('variable', [ 'i', 'NUMERIC' ]);
@@ -480,7 +480,7 @@ function Figure(figureNum) {
 		else if (figureNum == 29) {
 			// figure 29 code
 			editor.addVariable('variable', [ 'count', 'NUMERIC' ]);
-			editor.addFunction(['singsong', 'beers', 'Returns nothing']);
+			editor.addFunction(['singsong', 'beers', 'Numeric', 'Returns nothing']);
 			editor.decSelRow();
 			editor.decSelRow();
 			editor.addWhile(['beers', '>', '0']);
@@ -503,7 +503,7 @@ function Figure(figureNum) {
 		}
 		else if (figureNum == 30) {	// no bugs reported
 			editor.addVariable('variable', ['count', 'NUMERIC']);
-			editor.addFunction(['singsong', 'beers', 'Returns nothing']);
+			editor.addFunction(['singsong', 'beers', 'Numeric', 'Returns nothing']);
 			editor.decSelRow(); editor.decSelRow();
 			editor.addIfThen(['beers', '&gt;', '0']);
 			editor.decSelRow();
@@ -527,7 +527,7 @@ function Figure(figureNum) {
 			// figure 32 code
 			
 			editor.addVariable('variable', ['count', 'NUMERIC']);
-			editor.addFunction(['singsong', 'beers', 'Returns nothing']);
+			editor.addFunction(['singsong', 'beers', 'Numeric',	'Returns nothing']);
 			editor.decSelRow(); editor.decSelRow();
 			editor.addIfElse(['beers', '&gt;', '0']);
 			for (var i = 0; i < 4; i++) editor.decSelRow();
@@ -552,7 +552,7 @@ function Figure(figureNum) {
 		else if (figureNum == 38) {
 			editor.addVariable('variable', [ 'TOP', 'NUMERIC' ]);
 			editor.addVariable('array', [ 'STACK', '100', 'NUMERIC']);
-			editor.addFunction([ 'push', 'item', 'Returns nothing' ]);
+			editor.addFunction([ 'push', 'item', 'Numeric', 'Returns nothing' ]);
 			for (var i = 0; i < 2; i++) editor.decSelRow();
 			editor.addIfThen(['TOP', '&lt;', '99']);
 			editor.decSelRow();

@@ -104,7 +104,7 @@ function Editor(codeTable, prefix) {
 		
 		
 	}
-	
+
 	function returnToNormalColor() {
 		for (var i = 0; i < codeTable.rows.length; i++) {
 			var innerTable = codeTable.rows[i].cells[0].children[0];										// grab the inner table for this table data object
@@ -116,7 +116,11 @@ function Editor(codeTable, prefix) {
 				for (var j = 2; j < numCells; j++) innerTable.rows[0].cells[j].style.color = green;			// last cells are the comment, make it green
 			}
 			else if (numCells >= 3 && innerTable.rows[0].cells[2].innerHTML.indexOf("function") >= 0) {		// a function declaration? function needs to be blue
-				for (var j = 0; j < numCells; j++) {														
+				for (var j = 0; j < numCells; j++) {
+					if (innerTable.rows[0].cells[j].textContent.indexOf("/*") >= 0) {
+						innerTable.rows[0].cells[j].style.color = green;
+						continue;
+					}
 					if (j == 2) innerTable.rows[0].cells[j].style.color = blue;								// color "function" blue
 					else if (j == numCells - 2 || j == numCells - 1) innerTable.rows[0].cells[j].style.color = green;				// the comment at the end of function needs to be green
 					else innerTable.rows[0].cells[j].style.color = black;									// the rest black
@@ -147,6 +151,17 @@ function Editor(codeTable, prefix) {
 					innerTable.rows[0].cells[j].style.color = "#000000";
 				}
 			}
+
+			if (numCells <= 1) continue;
+			
+			var cellStr = innerTable.rows[0].cells[1].textContent;
+			for (var j = 0; j < cellStr.length; j++) {
+				if (cellStr.charCodeAt(j) == 8594) {
+					highlightLine(i);
+					break;
+				}
+			}
+		
 		}
 		
 		/*
@@ -695,22 +710,22 @@ function Editor(codeTable, prefix) {
 				if (params.length > 3) {
 					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(" ], 2);
 					addRowStyle(innerTable, [ blue, black ], 2);
-					for (var j = 1; j < params.length - 1; j++) {
-						if (j != params.length - 2) {
-							addRow(innerTable, [ params[j], ",&nbsp;" ], 2 + (j * 2));
-							addRowStyle(innerTable, [ black, black ], 2 + (j * 2));	
+					for (var j = 1; j < params.length - 1; j = j + 2) {
+						if (j != params.length - 3) {
+							addRow(innerTable, [ params[j], "&nbsp;/*" + params[j+1] + "*/", ",&nbsp;" ], innerTable.rows[0].cells.length);
+							addRowStyle(innerTable, [ black, green, black ], innerTable.rows[0].cells.length - 3);	
 						}
 						else {
-							addRow(innerTable, [ params[j] ], 2 + (j * 2));
-							addRowStyle(innerTable, [ black ], 2 + (j * 2));
+							addRow(innerTable, [ params[j], "&nbsp;/*" + params[j+1] + "*/"  ], innerTable.rows[0].cells.length);
+							addRowStyle(innerTable, [ black, green ], innerTable.rows[0].cells.length - 2);
 						}
 					}
 					addRow(innerTable, [ ")&nbsp;", "//&nbsp;", params[params.length - 1] ], innerTable.rows[0].cells.length);
 					addRowStyle(innerTable, [ black, green, green ], innerTable.rows[0].cells.length - 3);
 				}
-				else if (params.length == 3) {
-					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", params[1], ")&nbsp;", "//&nbsp;", params[2] ], 2);
-					addRowStyle(innerTable, [ blue, black, black, black, green, green ], 2);
+				else if (params.length == 4) {
+					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", params[1], "&nbsp;/*" + params[2] + "*/", ")&nbsp;", "//&nbsp;", params[3] ], 2);
+					addRowStyle(innerTable, [ blue, black, black, green, black, green, green ], 2);
 				}
 				else if (params.length == 2) {
 					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", ")&nbsp;", "//&nbsp;", params[1] ], 2);
@@ -1105,14 +1120,16 @@ function Editor(codeTable, prefix) {
 	
 	function selectLine(row) {
 		var innerTable;
-		returnToNormalColor();
+		
 		for (var i = 0; i < codeTable.rows.length; i++) {
 			innerTable = codeTable.rows[i].cells[0].children[0];
 			innerTable.rows[0].cells[1].innerHTML = blank;
 		}	
-		highlightLine(row);
+		
 		innerTable = codeTable.rows[row].cells[0].children[0];
 		innerTable.rows[0].cells[1].innerHTML = arrow;
+		returnToNormalColor();
+		highlightLine(row);
 		selRow = rowNum;
 	}
 
@@ -1121,23 +1138,22 @@ function Editor(codeTable, prefix) {
 		
 		if (start == -1 && end == -1) {
 			if (rowNum != nextLine && terminate == false) {
-				returnToNormalColor();
-				highlightLine(nextLine);
-			
 				var innerTable;
 				innerTable = codeTable.rows[selRow].cells[0].children[0];
 				innerTable.rows[0].cells[1].innerHTML = blank;
 				
 				innerTable = codeTable.rows[nextLine].cells[0].children[0];
 				innerTable.rows[0].cells[1].innerHTML = arrow;
+				
+				returnToNormalColor();
+				highlightLine(nextLine);
+				
 				selRow = nextLine;
 				terminate = true;
 				return true;
 			}
 			else {
 				terminate = false;
-				returnToNormalColor();
-				highlightLine(codeTable.rows.length - 1);
 			
 				var innerTable;
 				innerTable = codeTable.rows[selRow].cells[0].children[0];
@@ -1145,6 +1161,10 @@ function Editor(codeTable, prefix) {
 				
 				innerTable = codeTable.rows[codeTable.rows.length - 1].cells[0].children[0];
 				innerTable.rows[0].cells[1].innerHTML = arrow;
+				
+				returnToNormalColor();
+				highlightLine(codeTable.rows.length - 1);
+				
 				selRow = codeTable.rows.length - 1;
 				nextLine = lineNums[0];
 				return false;
@@ -1173,8 +1193,6 @@ function Editor(codeTable, prefix) {
 		
 		if (rowNum == nextLine) {
 			if (haltFlag == true) {
-				returnToNormalColor();
-				highlightLine(nextLine);
 			
 				var innerTable;
 				innerTable = codeTable.rows[selRow].cells[0].children[0];
@@ -1182,6 +1200,9 @@ function Editor(codeTable, prefix) {
 				
 				innerTable = codeTable.rows[nextLine].cells[0].children[0];
 				innerTable.rows[0].cells[1].innerHTML = arrow;
+				
+				returnToNormalColor();
+				highlightLine(nextLine);
 				
 				selRow = nextLine;
 				return true;
@@ -1248,8 +1269,6 @@ function Editor(codeTable, prefix) {
 			else return false;
 		}
 		
-		returnToNormalColor();
-		highlightLine(rowNum);
 		
 		var innerTable;
 		innerTable = codeTable.rows[selRow].cells[0].children[0];
@@ -1258,6 +1277,9 @@ function Editor(codeTable, prefix) {
 		innerTable = codeTable.rows[rowNum].cells[0].children[0];
 		innerTable.rows[0].cells[1].innerHTML = arrow;
 		selRow = rowNum;
+		
+		highlightLine(rowNum);
+		returnToNormalColor();
 		
 		return true;
 	}
