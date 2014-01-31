@@ -20,6 +20,7 @@ function Editor(codeTable, prefix) {
 	var green = "#007500";
 	var blue = "#0000FF";
 	var black = "#000000";
+	var brown = "#a52a2a";
 	var funcList = [];									// an array of currently declared functions
 	var rowType = [];
 	var curLine;
@@ -94,6 +95,8 @@ function Editor(codeTable, prefix) {
 			colNum = ($(this).index());							// grab the hovered cell's index
 			var rowNum = ($(this).parent().parent().parent().parent().parent().index());	// grab the row number from codeTable (this is a silly way of doing it, but it works)
 			
+			var innerTable = codeTable.rows[rowNum].cells[0].children[0];
+			var numCells = innerTable.rows[0].cells.length;
 			// depending on what cell the mouse if over, highlight accordingly
 			// go look at the functions getting called here to understand what is going on
 			// we pass rowNum and colNum to tell the function where start highlighting
@@ -101,11 +104,13 @@ function Editor(codeTable, prefix) {
 			else if (cellVal.indexOf("if") >= 0) highlightControlStructure(rowNum, colNum);
 			else if (cellVal.indexOf("function") >= 0) highlightControlStructure(rowNum, colNum);
 			else if (cellVal.indexOf("for") >= 0) highlightControlStructure(rowNum, colNum);
+			else if (cellVal.indexOf("else") >= 0) highlightControlStructure(rowNum, colNum);
 			else if (cellVal.indexOf('{') >= 0) highlightControlStructure(rowNum - 1, 0); 	// start highlighting a line before the '{'
 			else if (cellVal.indexOf('(') >= 0) highlightParenthesis('(', ')', rowNum, colNum);	// must highlight backwards if we land on a '}'
 			else if (cellVal.indexOf('}') >= 0) highlightControlStructureBackwards(rowNum, colNum);
 			else if (cellVal.indexOf(')') >= 0)	highlightParenthesisBackwards('(', ')', rowNum, colNum);
 			else if(cellVal.indexOf('var') >= 0 || cellVal.indexOf(';') >= 0 || cellVal.indexOf('//') >= 0) highlightLine(rowNum, colNum);
+			else if(numCells >= colNum + 2 && innerTable.rows[0].cells[colNum + 1].textContent.indexOf("(") >= 0) highlightParenthesis("(", ")", rowNum, colNum);
 			else highlightCell(rowNum, colNum);
 		});
 		
@@ -167,12 +172,21 @@ function Editor(codeTable, prefix) {
 			else if (numCells > 3 && innerTable.rows[0].cells[2].innerHTML.indexOf("write") >= 0) {
 				for (var j = 0; j < numCells; j++) {
 					if (j == 2)	innerTable.rows[0].cells[j].style.color = blue;
+					else if (j == 4) innerTable.rows[0].cells[j].style.color = brown;
 					else innerTable.rows[0].cells[j].style.color = black;
 				}
 			}
 			else if (numCells > 5 && innerTable.rows[0].cells[4].innerHTML.indexOf("parse") >= 0) {
 				for (var j = 0; j < numCells; j++) {
 					if (j == 4 || j == 6) innerTable.rows[0].cells[j].style.color = blue;
+					else if (j == 8 || j == 10) innerTable.rows[0].cells[j].style.color = brown;
+					else innerTable.rows[0].cells[j].style.color = black;
+				}
+			}
+			else if (numCells > 5 && innerTable.rows[0].cells[4].innerHTML.indexOf("prompt") >= 0) {
+				for (var j = 0; j < numCells; j++) {
+					if (j == 4) innerTable.rows[0].cells[j].style.color = blue;
+					else if (j == 6 || j == 8) innerTable.rows[0].cells[j].style.color = brown;
 					else innerTable.rows[0].cells[j].style.color = black;
 				}
 			}
@@ -469,19 +483,19 @@ function Editor(codeTable, prefix) {
 		}
 		else if (element == "write") {
 			addRow(innerTable, [ indentStr + "document.write", "(", params[0], ")", ";" ], 2);
-			addRowStyle(innerTable, [ blue, black, black, black, black ], 2);
+			addRowStyle(innerTable, [ blue, black, brown , black, black ], 2);
 		}
 		else if (element == "writeln") {
 			addRow(innerTable, [ indentStr + "document.writeln", "(", params[0], ")", ";" ], 2);
-			addRowStyle(innerTable, [ blue, black, black, black, black ], 2);
+			addRowStyle(innerTable, [ blue, black, brown, black, black ], 2);
 		}
 		else if (element == "stringPrompt") {
 			addRow(innerTable, [ indentStr + params[0] + "&nbsp;", "=&nbsp;", "prompt", "(", params[1], ",&nbsp;", params[2], ")", ";" ], 2);
-			addRowStyle(innerTable, [ black, black, blue, black, black, black, black, black, black ], 2);
+			addRowStyle(innerTable, [ black, black, blue, black, brown, black, brown, black, black ], 2);
 		}
 		else if (element == "numericPrompt") {
 			addRow(innerTable, [ indentStr + params[0] + "&nbsp;", "=&nbsp;", "parseFloat", "(", "prompt", "(", params[1], ",", params[2], ")", ")", ";" ], 2);
-			addRowStyle(innerTable, [ black, black, blue, black, blue, black, black, black, black, black, black, black ], 2);
+			addRowStyle(innerTable, [ black, black, blue, black, blue, black, brown, black, brown, black, black, black ], 2);
 		}
 		else if (element == "functionCall") { 
 			if (params.length == 1)	addRow(innerTable, [ indentStr + params[0] + "(", ")", ";" ], 2);
@@ -744,16 +758,16 @@ function Editor(codeTable, prefix) {
 							addRowStyle(innerTable, [ black, blue ], innerTable.rows[0].cells.length - 2);
 						}
 					}
-					addRow(innerTable, [ ")&nbsp;", "//&nbsp;", params[params.length - 1] ], innerTable.rows[0].cells.length);
-					addRowStyle(innerTable, [ black, green, green ], innerTable.rows[0].cells.length - 3);
+					addRow(innerTable, [ ")&nbsp;", "/*" + params[params.length - 1] + "*/" ], innerTable.rows[0].cells.length);
+					addRowStyle(innerTable, [ black, blue ], innerTable.rows[0].cells.length - 2);
 				}
 				else if (params.length == 4) {
-					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", params[1], "&nbsp;/*" + params[2] + "*/", ")&nbsp;", "//&nbsp;", params[3] ], 2);
-					addRowStyle(innerTable, [ blue, black, black, blue, black, green, green ], 2);
+					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", params[1], "&nbsp;/*" + params[2] + "*/", ")&nbsp;", "/*" + params[3] + "*/" ], 2);
+					addRowStyle(innerTable, [ blue, black, black, blue, black, blue ], 2);
 				}
 				else if (params.length == 2) {
-					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", ")&nbsp;", "//&nbsp;", params[1] ], 2);
-					addRowStyle(innerTable, [ blue, black, black, green, green ], 2);
+					addRow(innerTable, [ "<b>function</b>&nbsp;", params[0] + "(", ")&nbsp;", "/*" + params[1] + "*/" ], 2);
+					addRowStyle(innerTable, [ blue, black, black, blue ], 2);
 				}	
 			}
 			else if (i == 1) { addRow(innerTable, [ "{" ], 2); }
