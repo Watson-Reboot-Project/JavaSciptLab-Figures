@@ -382,6 +382,7 @@ function Editor(codeTable, prefix) {
 		var numCells = innerTable.rows[0].cells.length;					// grab the number of cells for this row
 		for (var i = 0; i < numCells; i++) {							// iterate throughout the cells
 			innerTable.rows[0].cells[i].style.color = '#FF0000';		// highlight all cells red
+			//innerTable.rows[0].cells[i].style.backgroundColor = "#FFFF00";
 		}
 	}
 
@@ -1154,7 +1155,6 @@ function Editor(codeTable, prefix) {
 		
 		return tCodeStr;
 	}
-
 
 	function isNewLine(start, end) {
 		if (start == -1 && end == -1) {

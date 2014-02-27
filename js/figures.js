@@ -40,6 +40,14 @@ function Figure(figureNum) {
 	var showVarBox = true;
 	var showScope = false;
 	
+	
+	var green = "#5CB85C";
+	var greenHover = "#47A447";
+	var orange = "#F0AD4E";
+	var orangeHover = "#F09C28";
+	var red = "#D9534F";
+	var redHover = "#D2322D";
+	
 	this.walkButton = walkButton;
 	this.runButton = runButton;
 	this.updateVariables = updateVariables;
@@ -52,8 +60,8 @@ function Figure(figureNum) {
 							</div> \
 						</div> \
 						<div class="rightbuttons" style="height:100%;"> \
-								<button type="button" style="margin-left:5%; margin-top:5px;" id="fig' + figureNum + 'Run">Run</button> \
-								<button type="button" style="margin-right:5%; margin-top:5px;" id="fig' + figureNum + 'Walk" onclick="figure' + figureNum + '.walkButton()">Walk</button> \
+								<button type="button" style="margin-left:5%; margin-top:5px; color:#FFFFFF; background-color:#5CB85C" id="fig' + figureNum + 'Run">Run</button> \
+								<button type="button" style="margin-right:5%; margin-top:5px; color:#FFFFFF; background-color:#F0AD4E" id="fig' + figureNum + 'Walk" onclick="figure' + figureNum + '.walkButton()">Walk</button> \
 							</div> \
 						<div class="bottomrightcontent" id="fig'+ figureNum + 'OutVarBox"style="clear: left;"> \
 							<h4>&nbsp;&nbsp;&nbsp;Internal Variables</h4> \
@@ -90,6 +98,31 @@ function Figure(figureNum) {
 	});
 	
 	$("#fig" + figureNum + "OutVarBox").slideUp("medium");
+	
+	$("#fig" + figureNum + "Run").mousemove(function() {
+		var button = document.getElementById("fig" + figureNum + "Run");
+		
+		if (button.textContent == "Run") button.style.backgroundColor = greenHover;
+		else button.style.backgroundColor = orangeHover;
+	});
+	
+	$("#fig" + figureNum + "Run").mouseout(function() {
+		var button = document.getElementById("fig" + figureNum + "Run");
+		if (button.textContent == "Run") button.style.backgroundColor = green;
+		else button.style.backgroundColor = orange;
+	});
+
+	$("#fig" + figureNum + "Walk").mousemove(function() {
+		var button = document.getElementById("fig" + figureNum + "Walk");
+		if (button.textContent == "Walk") button.style.backgroundColor = orangeHover;
+		else button.style.backgroundColor = redHover;
+	});
+	
+	$("#fig" + figureNum + "Walk").mouseout(function() {
+		var button = document.getElementById("fig" + figureNum + "Walk");
+		if (button.textContent == "Walk") button.style.backgroundColor = orange;
+		else button.style.backgroundColor = red;
+	});
 	
 	/*
 	* setupFigure()
@@ -610,9 +643,10 @@ function Figure(figureNum) {
 		else defaultPromptInput = defaultStr;
 		
 		if (promptType == "numeric") setupNumericPrompt(id);
-		else setupStringPrompt(id);
-		
-		$('#' + id).focus();
+		else {
+			setupStringPrompt(id);
+			//cell.focus();
+		}
 		row = outputTable.insertRow(outputTable.rows.length);
 		row.insertCell(0);
 		
@@ -620,6 +654,49 @@ function Figure(figureNum) {
 	}
 	
 	function setupNumericPrompt(id) {
+		openNumPad(null, null, "This is a test", "Do things", false, 10).done(function(result) {
+			var cell = document.getElementById(id);
+			
+			if (result === null) {
+				promptInput = defaultPromptInput;
+				cell.textContent = defaultPromptInput;
+			}
+			else {
+				promptInput = result;
+				cell.textContent = result;
+			}
+			
+			cell.contentEditable = false;
+			promptFlag = false;
+			
+			if (runMode == true || attemptingToRun == true) { attemptingToRun = false; runMode = false; runButton(); }
+			else { walkButton(); }
+		});
+	}
+	
+	function setupStringPrompt(id) {
+		openStringPad("This is a stringpad", "These are the instructions").done(function(result)
+		{
+			var cell = document.getElementById(id);	
+			
+			if (result === null) {
+				promptInput = defaultPromptInput;
+				cell.textContent = defaultPromptInput;
+			}
+			else {
+				promptInput = result;
+				cell.textContent = result;
+			}
+				
+			cell.contentEditable = false;
+			promptFlag = false;
+				
+			if (runMode == true || attemptingToRun == true) { attemptingToRun = false; runMode = false; runButton(); }
+			else { walkButton(); }
+		});
+	}
+	
+	function setupNumericPrompt2(id) {
 		$("#" + id).keyup(function (event) {
 			var code = event.which || event.keyCode;
 			if (code == 16) {
@@ -675,8 +752,8 @@ function Figure(figureNum) {
 			}
 		});
 	}
-	
-	function setupStringPrompt(id) {
+
+	function setupStringPrompt2(id) {
 		$("#" + id).keyup(function (event) {	
 			promptInput = document.getElementById(id).textContent;	// update the prompt input upon each key up
 		});
@@ -770,7 +847,9 @@ function Figure(figureNum) {
 		if (runMode == true) {
 			clearInterval(intervalID);
 			_runButton.textContent = "Run";
+			_runButton.style.backgroundColor = green; 
 			_walkButton.textContent = "Walk";
+			_walkButton.style.backgroundColor = orange;
 			runMode = false;
 			slideVarBox("down");
 			
@@ -781,20 +860,26 @@ function Figure(figureNum) {
 				$("#" + editCellID).focus();
 				attemptingToRun = true;
 				_runButton.textContent = "Pause";
+				_runButton.style.backgroundColor = orange;
 				_walkButton.textContent = "Reset";
+				_walkButton.style.backgroundColor = red;
 				return;
 			}
 			else if (attemptingToRun == true && checkIfPrompt() == true) {
 				attemptingToRun = false;
 				_runButton.textContent = "Run";
+				_runBotton.style.backgroundColor = green;
 				_walkButton.textContent = "Walk";
+				_walkButton.style.backgroundColor = orange;
 				slideVarBox("down");
 				return;
 			}
 			else if (attemptingToRun == true) {
 				attemptingToRun = false;
 				_runButton.textContent = "Run";
+				_runButton.style.backgroundColor = green;
 				_walkButton.textContent = "Walk";
+				_walkButton.style.backgroundColor = orange;
 				runMode = false;
 				slideVarBox("down");
 				return;
@@ -802,7 +887,9 @@ function Figure(figureNum) {
 		}
 		
 		_walkButton.textContent = "Reset";
+		_walkButton.style.backgroundColor = red;
 		_runButton.textContent = "Pause";
+		_runButton.style.backgroundColor = orange;
 		if (myInterpreter === null) myInterpreter = new Interpreter(codeStr, init, thisObj);
 		
 		runMode = true;
@@ -906,7 +993,9 @@ function Figure(figureNum) {
 	
 	function reset() {
 		_runButton.textContent = "Run";
+		_runButton.style.backgroundColor = green;
 		_walkButton.textContent = "Walk";
+		_walkButton.style.backgroundColor = orange;
 		promptFlag = false;
 		haltFlag = false;
 		attemptingToRun = false;
