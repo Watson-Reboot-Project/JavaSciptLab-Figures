@@ -900,10 +900,10 @@ function Figure(figID) {
 			
 			if (i != selectedRow && i != editor.getRowCount()) {
 				done = true;
-				var rowArr = editor.rowToArray(selectedRow);
-				if (rowArr[0].match("//")) {
-					editor.selectAndHighlightRowByIndex(selectedRow+1);
-				}
+				//var rowArr = editor.rowToArray(selectedRow);
+				//if (rowArr[0].match("//")) {
+				//	editor.selectAndHighlightRowByIndex(selectedRow+1);
+				//}
 				editor.selectAndHighlightRowByIndex(selectedRow);
 				selectedRow = i;
 
