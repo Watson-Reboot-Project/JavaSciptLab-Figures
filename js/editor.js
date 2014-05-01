@@ -1142,8 +1142,9 @@ function Editor(codeTable, prefix) {
 		}
 		
 		rowNum = lineNums[0];
+		//console.log(lineNums);
 		selRow = rowNum;
-		
+		console.log("rowNum"+rowNum);
 		codeStr = codeStr.replace("\xA0", " ");
 		codeStr = codeStr.replace("\x1E", " ");
 		var tCodeStr = "";
@@ -1158,16 +1159,19 @@ function Editor(codeTable, prefix) {
 
 	function isNewLine(start, end) {
 		if (start == -1 && end == -1) {
-
 			return [ true, rowNum ];
 		}
 		for (var i = 0; i < charCountStart.length; i++) {
-			if (start >= charCountStart[i] && end <= charCountEnd[i] + 1) { 
+			if (start >= charCountStart[i] && end <= charCountEnd[i] + 1) {
+				console.log("line num " + lineNums[i]);
+				console.log("rownum " + rowNum);
 				if (lineNums[i] == rowNum) { return [ false, rowNum ]; }
 				else {
 					rowNum = lineNums[i];
 					if (rowType[rowNum].indexOf('numeric') >= 0) { promptFlag = [ true, "numeric" ]; }
 					else if (rowType[rowNum].indexOf('prompt') >= 0) { promptFlag = [ true, "string" ]; }
+										console.log("RowNUm is " + selRow);
+
 					return [true, selRow];
 				}
 			}

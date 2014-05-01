@@ -439,7 +439,7 @@ function Figure(figureNum) {
 			showScope = true;
 			editor.showLineCount(true);
 		}
-		else if (figureNum == 29) {
+		else if (figureNum == 29) { 
 			// figure 29 code
 			editor.addVariable('variable', [ 'count', 'NUMERIC' ]);
 			editor.addFunction(['singsong', 'beers', 'Numeric', 'Returns nothing']);

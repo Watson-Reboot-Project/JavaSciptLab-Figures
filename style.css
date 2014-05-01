@@ -44,10 +44,10 @@ button[type=button] {
 }
 
 div {
-	width:95%;
+	/*width:95%;*/
 	margin:auto auto;
 	font-family:monospace;
-	overflow: auto;
+	/*overflow: auto;*/
 }
 /*
 .middlecontent {
