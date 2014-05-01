@@ -817,7 +817,6 @@ function Figure(figID) {
 				return;
 			}
 		}
-	
 		getRowToSelect();
 	}
 	
@@ -867,9 +866,9 @@ function Figure(figID) {
 			length = length + rowStr.length;
 		}
 		
-		//console.log(programStr);
+		console.log(programStr);
 		//console.log("Program String Length: " + programStr.length);
-		//console.log(programArray);
+		console.log(programArray);
 		//console.log(thisObj);
 		
 		interpreter = new Interpreter(programStr, init, thisObj);
@@ -892,6 +891,7 @@ function Figure(figID) {
 			}
 			
 			if (promptInterrupt == false && promptCheck(selectedRow) == true) {
+				console.log("got here");
 				promptInterrupt = true;
 				editor.selectAndHighlightRowByIndex(selectedRow);
 				currI = i;
@@ -900,7 +900,7 @@ function Figure(figID) {
 			
 			if (i != selectedRow && i != editor.getRowCount()) {
 				done = true;
-				//var rowArr = editor.rowToArray(selectedRow);
+				var rowArr = editor.rowToArray(selectedRow);
 				//if (rowArr[0].match("//")) {
 				//	editor.selectAndHighlightRowByIndex(selectedRow+1);
 				//}
@@ -920,6 +920,7 @@ function Figure(figID) {
 				else state = interpreter.stateStack[0].node;
 			}
 			lastInd = i;
+			
 		}
 	}
 	
