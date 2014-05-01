@@ -430,7 +430,7 @@ function Figure(figID) {
 		addFunction(5, "push", [{name: "item", type: "NUMERIC"}], "Returns Nothing");
 		addIfThen(7, "TOP", "<", "99", 2);
 		addAssignment(9, "TOP", "TOP", "+", "1", 4);
-		addAssignment(10, "STACK{TOP}", "item", "", "", 4);
+		addAssignment(10, "STACK[TOP]", "item", "", "", 4);
 		addBlankLine(13);
 		addFunction(14, "pop", [], "Returns Numeric");
 		addVariable(16, "item", "NUMERIC", 2);
@@ -866,9 +866,9 @@ function Figure(figID) {
 			length = length + rowStr.length;
 		}
 		
-		console.log(programStr);
+		//console.log(programStr);
 		//console.log("Program String Length: " + programStr.length);
-		console.log(programArray);
+		//console.log(programArray);
 		//console.log(thisObj);
 		
 		interpreter = new Interpreter(programStr, init, thisObj);
@@ -882,6 +882,7 @@ function Figure(figID) {
 		var jump = 2;
 		var lastInd;
 		
+	
 		while (!done) {
 			var i;
 			for (i = 0; i < programArray.length; i++) {
@@ -891,9 +892,10 @@ function Figure(figID) {
 			}
 			
 			if (promptInterrupt == false && promptCheck(selectedRow) == true) {
-				console.log("got here");
+				//console.log("got here");
 				promptInterrupt = true;
 				editor.selectAndHighlightRowByIndex(selectedRow);
+				//console.log("selectedRow " + selectedRow);
 				currI = i;
 				break;
 			}
@@ -905,8 +907,9 @@ function Figure(figID) {
 				//	editor.selectAndHighlightRowByIndex(selectedRow+1);
 				//}
 				editor.selectAndHighlightRowByIndex(selectedRow);
+				console.log("selected row is "+ selectedRow);
 				selectedRow = i;
-
+				console.log("the value of i is " + i);
 				return i;
 			}
 			else {
@@ -930,6 +933,7 @@ function Figure(figID) {
 		scopeArr = [];
 		varArr = [];
 		editor.selectAndHighlightRowByIndex(selectedRow);
+		//editor.clearHighlighting();
 		selectedRow = 1;
 	}
 	
@@ -949,7 +953,7 @@ function Figure(figID) {
 			
 			if (i != curr) {
 				count++;
-				if (count == num - 1) editor.selectRowByIndex(i);
+				//if (count == num - 1) editor.selectRowByIndex(i);
 				if (count == num) { selectedRow = i; break; }
 				curr = i;
 			}
