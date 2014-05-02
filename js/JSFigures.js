@@ -5,9 +5,9 @@
  * 	This is a modified version of the JavaScript figures to work with
  *	the Watson Editor.
  *************************************************/
-function Figure(figID) {
+function Figure(figID, uniqueFigID) {
 	this.updateVariables = updateVariables;
-	
+
 	var figDiv = document.getElementById("JSFigure-" + figID);
 	
 	figDiv.innerHTML = '<div class="leftcontent" readonly> \
@@ -57,6 +57,7 @@ function Figure(figID) {
 	var outputBox = document.getElementById("fig" + figID + "OutputBox");
 	var runButtonObj = document.getElementById("fig" + figID + "Run");
 	var walkButtonObj = document.getElementById("fig" + figID + "Walk");
+	var lastRowSelected = -1;
 	
 	var green = "#5CB85C";
 	var greenHover = "#47A447";
@@ -256,7 +257,7 @@ function Figure(figID) {
 		addAssignment(17, "total", "total", "+", "grade", 2);
 		addWrite(19, [ '"The average of the grades is "' ], 0);
 		addIfElse(20, "numberOfGrades", ">", "0", 0);
-		addAssignment(22, "average", "total", "/", "numberofGrades", 2);
+		addAssignment(22, "average", "total", "/", "numberOfGrades", 2);
 		addWrite(23, [ 'average' ], 2);
 		addWriteln(27, [ '"undefined"' ], 2);
 		showScope = true;
@@ -342,9 +343,10 @@ function Figure(figID) {
 		addNumericPrompt(23, "a", '"Enter a value."', "0", 0);
 		addNumericPrompt(24, "b", '"Enter a value."', "0", 0);
 		addNumericPrompt(25, "c", '"Enter a value."', "0", 0);
-		addAssignExpr(26, "y", ["a", "*", "power(x,3)", "+", "b", "*", "power(x,2)", "+", "c", "*", "x", "+", "d"], 0);
-		addWrite(27, ['"A*X**3 + B*X**2 + C*X + D = "'], 0);
-		addWrite(28, ['y'], 0);
+		addNumericPrompt(26, "d", '"enter a value."', "0", 0);
+		addAssignExpr(27, "y", ["a", "*", "power(x,3)", "+", "b", "*", "power(x,2)", "+", "c", "*", "x", "+", "d"], 0);
+		addWrite(28, ['"A*X**3 + B*X**2 + C*X + D = "'], 0);
+		addWrite(29, ['y'], 0);
 		showScope = true;
 	}
 	else if (figID == "29") {
@@ -503,8 +505,14 @@ function Figure(figID) {
 	function addWriteln(index, str, level) {
 		var indent = getIndent(level);
 		if (str.length == 1) {
-			editor.addRow(index, [ { text: indent }, { text: "document.writeln", type: "keyword" }, { text: "(", type: "openParen" }, { text: str, type: "literal" },
+			if (str[0].charAt(0) == '"') {
+				editor.addRow(index, [ { text: indent }, { text: "document.writeln", type: "keyword" }, { text: "(", type: "openParen" }, { text: str[0], type: "literal" },
 									{ text: ")", type: "closeParen" }, { text: ";" } ]);
+			}
+			else {
+				editor.addRow(index, [ { text: indent }, { text: "document.writeln", type: "keyword" }, { text: "(", type: "openParen" }, { text: str },
+									{ text: ")", type: "closeParen" }, { text: ";" } ]);
+			}
 		}
 	}
 	
@@ -527,7 +535,8 @@ function Figure(figID) {
 	
 	function addAssignment(index, leftSide, operand1, operator, operand2, level) {
 		var indent = getIndent(level);
-		if (operator == "" && operand2 == "") {
+		
+		if (!operator || (operator == "" && operand2 == "")) {
 			editor.addRow(index, [ { text: indent }, { text: leftSide }, { text: "&nbsp;=&nbsp;" }, { text: operand1 }, { text: ";" } ]);
 		} else 
 		editor.addRow(index, [ { text: indent }, { text: leftSide }, { text: "&nbsp;=&nbsp;" }, { text: operand1 }, { text: "&nbsp;" + operator + "&nbsp;" }, {text: operand2 }, { text: ";" } ]);
@@ -761,6 +770,8 @@ function Figure(figID) {
 			updateButtons();
 			walk();
 		}
+		
+		ga("send", "event", "javascript", "walk", "figure" + uniqueFigID);
 	}
 	
 	function runButton() {
@@ -778,6 +789,8 @@ function Figure(figID) {
 			slideVarBox("up");
 			intervalID = setInterval(walk, 100);
 		}
+		
+		ga("send", "event", "javascript", "run", "figure" + uniqueFigID);
 	}
 	
 	function updateButtons() {
@@ -852,13 +865,15 @@ function Figure(figID) {
 			
 			programStr += rowStr;
 			
-			if (rowArr.length > 0 && rowArr[0].indexOf("var") >= 0) {
+			if (rowArr.length >= 2 && rowArr[1].indexOf("var") >= 0) {
 				var start = rowStr.indexOf("/*");
 				var end = rowStr.indexOf("*/");
 				
-				var varName = rowStr.substring(rowStr.indexOf("var") + 4, rowStr.lastIndexOf(";"));
+				//var varName = rowStr.substring(rowStr.indexOf("var") + 4, rowStr.lastIndexOf(";"));
+				var varName = rowArr[rowArr.indexOf("var") + 2];
 				var dataType = rowStr.substring(start + 2, end);
 				
+				console.log("Var name: " + varName + " :: DataType: " + dataType);
 				dataTypeArray[varName] = dataType;
 				programArray.push([ length, length + rowStr.length ]);
 			}
@@ -882,7 +897,6 @@ function Figure(figID) {
 		var jump = 2;
 		var lastInd;
 		
-	
 		while (!done) {
 			var i;
 			for (i = 0; i < programArray.length; i++) {
@@ -907,9 +921,9 @@ function Figure(figID) {
 				//	editor.selectAndHighlightRowByIndex(selectedRow+1);
 				//}
 				editor.selectAndHighlightRowByIndex(selectedRow);
-				console.log("selected row is "+ selectedRow);
+				//console.log("selected row is "+ selectedRow);
 				selectedRow = i;
-				console.log("the value of i is " + i);
+				//console.log("the value of i is " + i);
 				return i;
 			}
 			else {
@@ -1159,7 +1173,7 @@ function Figure(figID) {
 		
 		if (!slidDown && dir == "down") {
 			$("#fig" + figID + "OutVarBox").slideDown("medium", function() {
-				//varBox.scrollTop = varBox.scrollHeight;
+				varBox.scrollTop = varBox.scrollHeight;
 				slidDown = true;
 			});
 		}
@@ -1187,10 +1201,18 @@ function Figure(figID) {
 				
 				if(!dataType) dataType = (isString(rightValue)) ? "text" : "numeric";
 				
-				if (leftValue.data && rightValue.data) varArr.push([scope, leftValue.data, dataType, rightValue.data]);
-				else if (leftValue.data) varArr.push([scope, leftValue.data, dataType, rightValue]);
-				else if (rightValue.data) varArr.push([scope, leftValue, dataType, rightValue.data]);
-				else varArr.push([scope, leftValue, dataType, rightValue]);
+				if (leftValue.data && rightValue.data) {
+					varArr.push([scope, leftValue.data, dataType, rightValue.data]);
+				}
+				else if (leftValue.data) {
+					varArr.push([scope, leftValue.data, dataType, rightValue]);
+				}
+				else if (rightValue.data) {
+					varArr.push([scope, leftValue, dataType, rightValue.data]);
+				}
+				else {
+					varArr.push([scope, leftValue, dataType, rightValue]);
+				}
 				
 				if (!scopeExists(scope)) scopeArr.push(scope);
 			}
@@ -1269,10 +1291,14 @@ function Figure(figID) {
 						break;
 					}
 					cell = row.insertCell(j);
+					
 					if (j == 0) cell.textContent = getScopeNum(varArr[i][0]);
 					else if (j == 1) cell.textContent = varArr[i][1];
 					else if (j == 2) cell.textContent = varArr[i][2];
-					else cell.textContent = varArr[i][3];
+					else {
+						if (!varArr[i][3]) cell.textContent = "undefined";
+						else cell.textContent = varArr[i][3];
+					}
 				}
 			}
 		}

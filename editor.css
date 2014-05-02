@@ -1,0 +1,19 @@
+.code{
+	color: #000000;
+}
+
+.keyword{
+	color: #0000FF;
+}
+
+.literal{
+	color: #A52A2A;
+}
+
+.comment{
+	color: #007500;
+}
+
+.selected{
+	color: #FF0000;
+}
