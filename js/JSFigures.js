@@ -5,14 +5,21 @@
  * 	This is a modified version of the JavaScript figures to work with
  *	the Watson Editor.
  *************************************************/
-function Figure(figID, uniqueFigID) {
-	this.updateVariables = updateVariables;
+function Figure(figID, uniqueFigID, chapterName, exerciseNum) {
+	//set defaults for chapterName and exerciseNum, both default to null
+	if(typeof chapterName == 'undefined'){
+		chapterName = null;
+	}
+	if(typeof exerciseNum == 'undefined'){
+		exerciseNum = null;
+	}
+	//this.updateVariables = editor.updateVariables;
 
 	var figDiv = document.getElementById("JSFigure-" + figID);
 	
 	figDiv.innerHTML = '<div class="leftcontent" readonly> \
 							<h4>&nbsp;Program definition</h4> \
-								<div id="fig' + figID + 'Editor"></table> \
+								<div id="figJSFigure-' + figID + 'Editor"></table> \
 							</div> \
 						<div class="rightbuttons" style="height:100%;"> \
 							<button type="button" style="margin-left:5%; margin-top:5px; color:#FFFFFF; background-color:#5CB85C" id="fig' + figID + 'Run">Run</button> \
@@ -32,7 +39,7 @@ function Figure(figID, uniqueFigID) {
 						</div> ';
 
 	//function Editor(divID, chapterName, exerciseNum, lineNumBool, syntaxHighlightingBool, lineNumStart, insertBetweenRowsBool, editable, autoSave){
-	var editor = new Editor("fig" + figID + "Editor", null, null, true, true, 1, true, false, false);
+
 	var interpreter = null;
 	var thisObj = this;
 	var programArray;
@@ -59,6 +66,9 @@ function Figure(figID, uniqueFigID) {
 	var walkButtonObj = document.getElementById("fig" + figID + "Walk");
 	var lastRowSelected = -1;
 	
+	var editor = new Editor("figJSFigure-" + figID + "Editor", chapterName, exerciseNum, true, true, 1, true, false, false);
+	var engine = new Engine(figID, chapterName, exerciseNum, editor);
+	
 	var green = "#5CB85C";
 	var greenHover = "#47A447";
 	var orange = "#F0AD4E";
@@ -81,7 +91,7 @@ function Figure(figID, uniqueFigID) {
 		addVariable(1, "firstName", "TEXT", 0);
 		addBlankLine(2);
 		addComment(3, "Main Program");
-		addStringPrompt(4, "firstName", '"Please enter your first name."', '""');
+		addStringPrompt(4, "firstName", '"Please enter your first name."', '""', 1);
 		addWrite  (5, [ '"Hello "' ], 0);
 		addWrite  (6, [ 'firstName' ], 0);
 		addWriteln(7, [ '". Nice to meet you."' ], 0);
@@ -452,6 +462,18 @@ function Figure(figID, uniqueFigID) {
 		addWriteln(36, ['pop()'], 0);
 		showScope = true;
 	}
+	else{
+		if(editor.checkEditorData()){
+			retrieveUpdates();
+		}/*
+		else{
+			//insert standard comments
+			addComment(0, "JavaScript Program");
+			addBlankLine(1);
+			addComment(2, "Main Program");
+		}*/
+	}
+		
 	
 	//;;;;;;;;;;;;; Editor Add Functions ;;;;;;;;;;;;;;;;;;;;;
 	
@@ -468,21 +490,53 @@ function Figure(figID, uniqueFigID) {
 	function addVariable(index, name, type, level) {
 		var indent = getIndent(level);
 		
-		editor.addRow(index, [ { text: indent }, { text: "var", type: "keyword" }, { text: "&nbsp" }, { text: name }, { text: ";" }, { text: "&nbsp" }, { text: "/*" + type + "*/", type: "datatype" } ]);
+		editor.addRow(index,
+			[ { text: indent },
+			{ text: "var", type: "keyword" },
+			{ text: "&nbsp" },
+			{ text: name },
+			{ text: ";&nbsp;" },
+			{ text: "&nbsp/*", type: "datatype"},
+			{ text: type, type: "datatype" },
+			{ text: "*/", type: "datatype" } ]);
 	}
 	
-	function addStringPrompt(index, varName, prompt, defaultValue) {
-		editor.addRow(index, [ { text: varName }, { text: "&nbsp=&nbsp" }, { text: "prompt", type: "keyword" }, { text: "(", type: "openParen" },
-								{ text: prompt, type: "literal" }, { text: ",&nbsp;" }, { text: defaultValue, type: "literal" },
-								{ text: ")", type: "closeParen" }, { text: ";" } ]);
+	function addStringPrompt(index, varName, prompt, defaultValue, level) {
+		var indent = getIndent(level);
+		
+		editor.addRow(index,
+			[ { text: indent },
+			{ text: varName },
+			{ text: "&nbsp;" },
+			{ text: "=" },
+			{ text: "&nbsp;" },
+			{ text: "prompt", type: "keyword" },
+			{ text: "(", type: "openParen" },
+			{ text: prompt, type: "literal" },
+			{ text: ",&nbsp;" },
+			{ text: defaultValue, type: "literal" },
+			{ text: ")", type: "closeParen" },
+			{ text: ";" } ]);
 	}
 	
 	function addNumericPrompt(index, varName, prompt, defaultValue, level) {
 		var indent = getIndent(level);
-		editor.addRow(index, [ {text: indent }, { text: varName }, { text: "&nbsp=&nbsp" }, { text: "parseFloat", type: "keyword" }, { text: "(", type: "openParen" },
-								{ text: "prompt", type: "keyword" }, { text: "(", type: "openParen" }, { text: prompt, type: "literal" },
-								{ text: ",&nbsp;" }, { text: defaultValue, type: "literal" }, { text: ")", type: "closeParen" },
-								{ text: ")", type: "closeParen" }, { text: ";" } ]);
+		editor.addRow(index,
+			[ {text: indent },
+			{ text: varName },
+			{ text: "&nbsp;" },
+			{ text: "=" },
+			{ text: "&nbsp;" },
+			{ text: "parseFloat", type: "keyword" },
+			{ text: "(", type: "openParen" },
+			{ text: "prompt", type: "keyword" },
+			{ text: "(", type: "openParen" },
+			{ text: prompt, type: "literal" },
+			{ text: ",&nbsp;" },
+			{ text: defaultValue, type: "literal" },
+			{ text: ")", type: "closeParen" },
+			{ text: ")", type: "closeParen" },
+			{ text: ";" } ]);
 	}
 	
 	// The write function can potentially have multiple things to write concatenated by a plus sign.
@@ -492,12 +546,22 @@ function Figure(figID, uniqueFigID) {
 		
 		if (str.length == 1) {
 			if (str[0].charAt(0) == '"') {
-				editor.addRow(index, [ { text: indent }, { text: "document.write", type: "keyword" }, { text: "(", type: "openParen" }, { text: str[0], type: "literal" },
-									{ text: ")", type: "closeParen" }, { text: ";" } ]);
+				editor.addRow(index,
+					[ { text: indent },
+					{ text: "document.write", type: "keyword" },
+					{ text: "(", type: "openParen" },
+					{ text: str[0], type: "literal" },
+					{ text: ")", type: "closeParen" },
+					{ text: ";" } ]);
 			}
 			else {
-				editor.addRow(index, [ { text: indent }, { text: "document.write", type: "keyword" }, { text: "(", type: "openParen" }, { text: str[0] },
-									{ text: ")", type: "closeParen" }, { text: ";" } ]);
+				editor.addRow(index,
+					[ { text: indent },
+					{ text: "document.write", type: "keyword" },
+					{ text: "(", type: "openParen" },
+					{ text: str[0] },
+					{ text: ")", type: "closeParen" },
+					{ text: ";" } ]);
 			}
 		}
 	}
@@ -506,12 +570,22 @@ function Figure(figID, uniqueFigID) {
 		var indent = getIndent(level);
 		if (str.length == 1) {
 			if (str[0].charAt(0) == '"') {
-				editor.addRow(index, [ { text: indent }, { text: "document.writeln", type: "keyword" }, { text: "(", type: "openParen" }, { text: str[0], type: "literal" },
-									{ text: ")", type: "closeParen" }, { text: ";" } ]);
+				editor.addRow(index,
+					[ { text: indent },
+					{ text: "document.writeln", type: "keyword" },
+					{ text: "(", type: "openParen" },
+					{ text: str[0], type: "literal" },
+					{ text: ")", type: "closeParen" },
+					{ text: ";" } ]);
 			}
 			else {
-				editor.addRow(index, [ { text: indent }, { text: "document.writeln", type: "keyword" }, { text: "(", type: "openParen" }, { text: str },
-									{ text: ")", type: "closeParen" }, { text: ";" } ]);
+				editor.addRow(index,
+					[ { text: indent },
+					{ text: "document.writeln", type: "keyword" },
+					{ text: "(", type: "openParen" },
+					{ text: str },
+					{ text: ")", type: "closeParen" },
+					{ text: ";" } ]);
 			}
 		}
 	}
@@ -522,7 +596,9 @@ function Figure(figID, uniqueFigID) {
 
 		arr.push({text: indent});
 		arr.push({text: leftSide});
-		arr.push({text: "&nbsp;=&nbsp;"});
+		arr.push({text:"&nbsp;"});
+		arr.push({text:"="});
+		arr.push({text:"&nbsp"});
 		for (var i = 0; i < params.length; i++) {
 			if (i == params.length - 1)
 				arr.push({text: params[i]+";"});
@@ -537,9 +613,26 @@ function Figure(figID, uniqueFigID) {
 		var indent = getIndent(level);
 		
 		if (!operator || (operator == "" && operand2 == "")) {
-			editor.addRow(index, [ { text: indent }, { text: leftSide }, { text: "&nbsp;=&nbsp;" }, { text: operand1 }, { text: ";" } ]);
-		} else 
-		editor.addRow(index, [ { text: indent }, { text: leftSide }, { text: "&nbsp;=&nbsp;" }, { text: operand1 }, { text: "&nbsp;" + operator + "&nbsp;" }, {text: operand2 }, { text: ";" } ]);
+			editor.addRow(index,
+				[ { text: indent },
+				{ text: leftSide },
+				{ text: "&nbsp;" },
+				{ text: "=" },
+				{ text: "&nbsp;" },
+				{ text: operand1 },
+				{ text: ";" } ]);
+		} else {
+		editor.addRow(index,
+			[ { text: indent },
+			{ text: leftSide },
+			{ text: "&nbsp;" },
+			{ text: "=" },
+			{ text: "&nbsp;" },
+			{ text: operand1 },
+			{ text: "&nbsp;" + operator + "&nbsp;" },
+			{text: operand2 },
+			{ text: ";" } ]);
+		}
 	}
 	
 	function addAssignFunction(index, leftside, funcName, values, level) {
@@ -555,7 +648,9 @@ function Figure(figID, uniqueFigID) {
 		var arr2 = [];
 		arr2.push({text: indent});
 		arr2.push({text: leftside});
-		arr2.push({text: "&nbsp;=&nbsp;"});
+		arr.push({text:"&nbsp;"});
+		arr.push({text:"="});
+		arr.push({text:"&nbsp"});
 		arr2.push({text: funcName});
 		arr2.push( { text: "(", type: "openParen" } );
 		for (var i = 0; i < arr.length; i++) {
@@ -592,22 +687,48 @@ function Figure(figID, uniqueFigID) {
 	function addIfThen(index, leftSide, boolSym, rightSide, level) {
 		var indent = getIndent(level);
 		
-		editor.addRow(index, [ { text: indent }, { text: "if ", type: "keyword" }, { text: "(", type: "openParen" }, { text: leftSide }, { text: "&nbsp;" + boolSym + "&nbsp;" },
-								{ text: rightSide }, { text: ")", type: "keyword" }, { text: " " } ]);
-		editor.addRow(index + 1, [ { text: indent }, { text: "{", type: "openBrack" } ]);
-		editor.addRow(index + 2, [ { text: indent }, { text: "}", type: "closeBrack" } ]);
+		editor.addRow(index,
+			[ { text: indent },
+			{ text: "if ", type: "keyword" },
+			{ text: "(", type: "openParen" },
+			{ text: leftSide },
+			{ text: "&nbsp;" + boolSym + "&nbsp;" },
+			{ text: rightSide },
+			{ text: ")", type: "keyword" } ]);
+		editor.addRow(index + 1,
+			[ { text: indent },
+			{ text: "{", type: "openBrack" } ]);
+		editor.addRow(index + 2,
+			[ { text: indent },
+			{ text: "}", type: "closeBrack" } ]);
 	}
 	
 	function addIfElse(index, leftSide, boolSym, rightSide, level) {
 		var indent = getIndent(level);
 		
-		editor.addRow(index, [ { text: indent }, { text: "if ", type: "keyword" }, { text: "(", type: "openParen" }, { text: leftSide }, { text: "&nbsp;" + boolSym + "&nbsp;" },
-								{ text: rightSide }, { text: ")", type: "keyword" }, { text: " " } ]);
-		editor.addRow(index + 1, [ { text: indent }, { text: "{", type: "openBrack" } ]);
-		editor.addRow(index + 2, [ { text: indent }, { text: "}", type: "closeBrack" } ]);
-		editor.addRow(index + 3, [ { text: indent }, { text: "else ", type: "keyword" } ]);
-		editor.addRow(index + 4, [ { text: indent }, { text: "{", type: "openBrack" } ]);
-		editor.addRow(index + 5, [ { text: indent }, { text: "}", type: "closeBrack" } ]);
+		editor.addRow(index,
+			[ { text: indent },
+			{ text: "if ", type: "keyword" },
+			{ text: "(", type: "openParen" },
+			{ text: leftSide },
+			{ text: "&nbsp;" + boolSym + "&nbsp;" },
+			{ text: rightSide },
+			{ text: ")", type: "keyword" } ]);
+		editor.addRow(index + 1,
+			[ { text: indent },
+			{ text: "{", type: "openBrack" } ]);
+		editor.addRow(index + 2,
+			[ { text: indent },
+			{ text: "}", type: "closeBrack" } ]);
+		editor.addRow(index + 3,
+			[ { text: indent },
+			{ text: "else ", type: "keyword" } ]);
+		editor.addRow(index + 4,
+			[ { text: indent },
+			{ text: "{", type: "openBrack" } ]);
+		editor.addRow(index + 5,
+			[ { text: indent },
+			{ text: "}", type: "closeBrack" } ]);
 	}
 	
 	function addFor(index, var1, operand1, operator1, operand2, operator2, level) {
@@ -615,34 +736,49 @@ function Figure(figID, uniqueFigID) {
 		
 		editor.addRow(index,
 			[{text: indent},
-			 {text: "for", type: "keyword"},
-			 {text: "(", type: "openParen"},
-			 {text: var1},
-			 {text: "&nbsp;=&nbsp;"},
-			 {text: operand1+";"},
-			 {text: "&nbsp;"+var1+"&nbsp;"},
-			 {text: operator1},
-			 {text: "&nbsp;"+operand2+";&nbsp;"},
-			 {text: var1+operator2},
-			 {text: ")", type: "closeParen"}]);
+			{text: "for", type: "keyword"},
+			{text: "(", type: "openParen"},
+			{text: var1},
+			{text: "&nbsp;"},
+			{text: "="},
+			{text: "&nbsp"},
+			{text: operand1},
+			{text: ";&nbsp;"},
+			{text: var1},
+			{text: "&nbsp;"},
+			{text: operator1+"&nbsp;"},
+			{text: operand2 },
+			{text: ";&nbsp;"},
+			{text: var1},
+			{text: operator2},
+			{text: ")", type: "closeParen"}]);
 		
-		editor.addRow(index + 1, [ { text: indent }, { text: "{", type: "openBrack" } ]);
-		editor.addRow(index + 2, [ { text: indent }, { text: "}", type: "closeBrack" } ]);
+		editor.addRow(index + 1,
+			[ { text: indent },
+			{ text: "{", type: "openBrack" } ]);
+		editor.addRow(index + 2,
+			[ { text: indent },
+			{ text: "}", type: "closeBrack" } ]);
 	}
 	
 	function addWhile(index, param1, param2, param3, level) {
 		var indent = getIndent(level);
 		
 		editor.addRow(index,
-			[{text: indent+"while", type: "keyword"},
-			 {text: "(", type: "openParen"},
-			 {text: param1},
-			 {text: "&nbsp;"+param2+"&nbsp;"},
-			 {text: param3},
-			 {text: ")", type: "closeParen"}]);
+			[{text: indent},
+			{text: "while", type: "keyword"},
+			{text: "(", type: "openParen"},
+			{text: param1},
+			{text: "&nbsp;"+param2+"&nbsp;"},
+			{text: param3},
+			{text: ")", type: "closeParen"}]);
 		
-		editor.addRow(index + 1, [ { text: indent }, { text: "{", type: "openBrack" } ]);
-		editor.addRow(index + 2, [ { text: indent }, { text: "}", type: "closeBrack" } ]);
+		editor.addRow(index + 1,
+			[ { text: indent },
+			{ text: "{", type: "openBrack" } ]);
+		editor.addRow(index + 2,
+			[ { text: indent },
+			{ text: "}", type: "closeBrack" } ]);
 	}
 	
 	function addArray(index, left, num, type, level) {
@@ -650,15 +786,19 @@ function Figure(figID, uniqueFigID) {
 		
 		editor.addRow(index,
 			[{ text: indent },
-			 { text: "var", type: "keyword"},
-			 { text: "&nbsp" },
-			 { text: left },
-			 { text: "&nbsp;=&nbsp;"},
-			 { text: "new", type: "keyword"},
-			 { text: "&nbsp;Array("},
-			 { text: num },
-			 { text: ");&nbsp;"},
-			 { text: "/*" + type + "*/", type: "datatype" } ]);
+			{ text: "var", type: "keyword"},
+			{ text: "&nbsp" },
+			{ text: left },
+			{ text: "&nbsp;=&nbsp;"},
+			{ text: "new&nbsp;", type: "keyword"},
+			{ text: "Array"},
+			{ text: "(", type: "openParen"},
+			{ text: num },
+			{ text: ")", type: "closeParen" },
+			{ text: ";"},
+			{ text: "&nbsp;/*", type: "datatype" },
+			{ text: type, type: "datatype" },
+			{ text: "*/", type: "datatype" } ]);
 	}
 	
 	function addReturn(index, value, level) {
@@ -666,9 +806,10 @@ function Figure(figID, uniqueFigID) {
 		
 		editor.addRow(index,
 			[{text: indent},
-			 {text: "return", type: "keyword"},
-			 {text: "&nbsp;"+value},
-			 {text: ";"}]);
+			{text: "return", type: "keyword"},
+			{text: "&nbsp;"},
+			{text: value},
+			{text: ";"}]);
 	}
 	
 	function addFunction(index, funcName, values, commentType) {
@@ -708,15 +849,42 @@ function Figure(figID, uniqueFigID) {
 		editor.addRow(row, [{ text: "//&nbsp;"+param, type: "comment" }]);
 	}
 	
+	// findIndentation() returns a string with the appropriate spacing depending on the row number passed to it
+	// Starting from the top of the code, it finds how many mismatching brackets '{' '}' there are when the row
+	// is reached. The number of opened brackets without a matching close parenthesis is how many tabs this row
+	// will need
+	function findIndentation(row) {
+		var bracket = 0;	// number of brackets opened
+		for (var i = 0; i < editor.getRowCount(); i++) {								// iterate throughout the code table
+			if (i == row) break;														// when the iteration equals the row, stop
+			var rowArr = editor.rowToArrayHtml(i);
+			
+			if (rowArr.indexOf('{') >= 0) {			// if an open bracket, add one to bracket
+				bracket++;
+			}
+			else if (rowArr.indexOf('}') >= 0) {		// if a close bracket, subtract one from bracket
+				bracket--;
+			}
+		}
+
+		// the bracket variable is how many indents we need
+		var indents = "";
+		for (var i = 0; i < bracket; i++) indents += indent;
+		
+		return indents;
+	}
+	
+	//end editor stuff-------------------------------------
+	
 	// Walk button listener
 	$("#fig" + figID + "Walk").click(function() {
-		walkButton();
+		engine.walkButton();
 	});
 	
 	// Run button listener
 	$("#fig" + figID + "Run").click(function() {
 		$("#fig" + figID + "OutVarBox").slideUp(function() {
-			runButton();
+			engine.runButton();
 			slidDown = false;
 		});
 	});
@@ -749,589 +917,26 @@ function Figure(figID, uniqueFigID) {
 		else button.style.backgroundColor = red;
 	});
 	
-	function walkButton() {
-		if (interpreter === null) initInterpreter();
-		
-		if (runMode == true) {
-			clearInterval(intervalID);
-			runMode = false;
-			interpreter = null;
-			reset();
-			editor.selectAndHighlightRowByIndex(editor.getRowCount() - 1);
-			finishedExec = false;
-			slideVarBox("up");
-			outputTable.innerHTML = "";
-			varTable.innerHTML = "";
-			selectedRow = 1;
-			updateButtons();
-		}
-		else {
-			slideVarBox("down");
-			updateButtons();
-			walk();
-		}
-		
-		ga("send", "event", "javascript", "walk", "figure" + uniqueFigID);
+	this.retrieveUpdates = retrieveUpdates;
+	function retrieveUpdates(){
+		editor.loadEditor("figJSSandboxEditor", "fig" + figID + "Editor", true);
 	}
 	
-	function runButton() {
-		if (interpreter === null) initInterpreter();
-
-		if (runMode == true) {
-			runMode = false;
-			slideVarBox("down");
-			clearInterval(intervalID);
-			updateButtons();
-		}
-		else {
-			runMode = true;
-			updateButtons();
-			slideVarBox("up");
-			intervalID = setInterval(walk, 100);
+	this.saveEditor = saveEditor;
+	function saveEditor(force){
+		//set force to default to false
+		if(typeof force == 'undefined'){
+			force = false;
 		}
 		
-		ga("send", "event", "javascript", "run", "figure" + uniqueFigID);
+		if(force || editor.checkEditorData(true))
+			editor.saveEditor(true);
 	}
 	
-	function updateButtons() {
-		if (runMode == true) {
-			runButtonObj.textContent = "Pause";
-			runButtonObj.style.backgroundColor = orange;
-			walkButtonObj.textContent = "Stop";
-			walkButtonObj.style.backgroundColor = red;
-		}
-		else {
-			runButtonObj.textContent = "Run";
-			runButtonObj.style.backgroundColor = green;
-			walkButtonObj.textContent = "Walk";
-			walkButtonObj.style.backgroundColor = orange;
-		}
-	}
-	
-	function walk() {
-		if (runMode == true && finishedExec == true) {
-			clearInterval(intervalID);
-			editor.selectAndHighlightRowByIndex(editor.getRowCount() - 1);
-			runMode = false;
-			interpreter = null;
-			finishedExec = false;
-			slideVarBox("down");
-			updateButtons();
-			return;
-		}
-		else {
-			if (finishedExec == true) {
-				editor.selectAndHighlightRowByIndex(editor.getRowCount() - 1);
-				finishedExec = false;
-				interpreter = null;
-				var outputTableRow = outputTable.insertRow(0);
-				outputTableRow.insertCell(0);
-				
-				return;
-			}
-		}
-		getRowToSelect();
-	}
-	
-	function initInterpreter() {
-		var rowCount = editor.getRowCount();
-		var programStr = "";
-		programArray = new Array();
-		
-		var length = 0;
-		
-		outputTable.innerHTML = "";
-		var outputTableRow = outputTable.insertRow(0);
-		var outputTableCell = outputTableRow.insertCell(0);
-		
-		for (var i = 0; i < rowCount; i++) {
-		
-			var rowArr = editor.rowToArray(i);
-
-			var rowStr = "";
-			
-			for (var j = 0; j < rowArr.length; j++) {
-				if (rowArr[0].match("//")) {
-					break;
-				}
-				rowStr += rowArr[j];
-			}
-			
-			if (rowStr.indexOf("document") >= 0) {
-				var tempRow = "document1";
-				tempRow += rowStr.substring(rowStr.indexOf(".") + 1, rowStr.length);
-				rowStr = tempRow;
-			}
-			
-			programStr += rowStr;
-			
-			if (rowArr.length >= 2 && rowArr[1].indexOf("var") >= 0) {
-				var start = rowStr.indexOf("/*");
-				var end = rowStr.indexOf("*/");
-				
-				//var varName = rowStr.substring(rowStr.indexOf("var") + 4, rowStr.lastIndexOf(";"));
-				var varName = rowArr[rowArr.indexOf("var") + 2];
-				var dataType = rowStr.substring(start + 2, end);
-				
-				console.log("Var name: " + varName + " :: DataType: " + dataType);
-				dataTypeArray[varName] = dataType;
-				programArray.push([ length, length + rowStr.length ]);
-			}
-			else programArray.push([ length, length + rowStr.length ]);
-			length = length + rowStr.length;
-		}
-		
-		//console.log(programStr);
-		//console.log("Program String Length: " + programStr.length);
-		//console.log(programArray);
-		//console.log(thisObj);
-		
-		interpreter = new Interpreter(programStr, init, thisObj);
-	}
-	
-	function getRowToSelect() {
-		var result = interpreter.step();
-		var state = interpreter.stateStack[0].node;
-		var done = false;
-		var count = 0;
-		var jump = 2;
-		var lastInd;
-		
-		while (!done) {
-			var i;
-			for (i = 0; i < programArray.length; i++) {
-				if (state.start >= programArray[i][0] && state.end <= programArray[i][1]) {
-					break;
-				}
-			}
-			
-			if (promptInterrupt == false && promptCheck(selectedRow) == true) {
-				//console.log("got here");
-				promptInterrupt = true;
-				editor.selectAndHighlightRowByIndex(selectedRow);
-				//console.log("selectedRow " + selectedRow);
-				currI = i;
-				break;
-			}
-			
-			if (i != selectedRow && i != editor.getRowCount()) {
-				done = true;
-				var rowArr = editor.rowToArray(selectedRow);
-				//if (rowArr[0].match("//")) {
-				//	editor.selectAndHighlightRowByIndex(selectedRow+1);
-				//}
-				editor.selectAndHighlightRowByIndex(selectedRow);
-				//console.log("selected row is "+ selectedRow);
-				selectedRow = i;
-				//console.log("the value of i is " + i);
-				return i;
-			}
-			else {
-				var result = interpreter.step();
-				pollVariables();
-				
-				outputBox.scrollTop = outputBox.scrollHeight;
-				varBox.scrollTop = varBox.scrollHeight;
-				
-				if (!interpreter.stateStack[0]) { reset(); break; }
-				else state = interpreter.stateStack[0].node;
-			}
-			lastInd = i;
-			
-		}
-	}
-	
-	function reset() {
-		finishedExec = true;
-		dataTypeArray = [];
-		scopeArr = [];
-		varArr = [];
-		editor.selectAndHighlightRowByIndex(selectedRow);
-		//editor.clearHighlighting();
-		selectedRow = 1;
-	}
-	
-	function jumpTo(num, curr) {
-		var result = interpreter.step();
-		if (!result) return;
-		var state = interpreter.stateStack[0].node;
-		
-		var count = 0;
-		var globCount = 0;
-		
-		while (true) {
-			var i;
-			for (i = 0; i < programArray.length; i++) {
-				if (state.start >= programArray[i][0] && state.end <= programArray[i][1]) break;
-			}
-			
-			if (i != curr) {
-				count++;
-				//if (count == num - 1) editor.selectRowByIndex(i);
-				if (count == num) { selectedRow = i; break; }
-				curr = i;
-			}
-			
-			interpreter.step();
-			state = interpreter.stateStack[0].node;
-			
-			if (globCount++ == 20) {
-				console.log("Something went wrong.");
-				break;
-			}
-		}
-	}
-	
-	function outputWrite(text) {
-		var cell = outputTable.rows[outputTable.rows.length - 1].cells[0];
-		cell.setAttribute("style", "height:15px");
-		cell.textContent += text;
-	}
-	
-	function outputWriteln(text) {
-		if (text == " ") text = " ";
-		var cell = outputTable.rows[outputTable.rows.length - 1].cells[0];
-		cell.setAttribute("style", "height:1em");
-		cell.textContent += text;
-		var row = outputTable.insertRow(outputTable.rows.length);
-		row.insertCell(0);
-	}
-	
-	function promptCheck(index) {
-		var rowArr = editor.rowToArray(index);
-		var rowStr = "";
-		var promptType;
-		var prompt;
-		var defaultValue;
-		
-		for (var i = 0; i < rowArr.length; i++) {
-			rowStr += rowArr[i];
-		}
-		
-		var promptInd = rowStr.indexOf("prompt");
-		if (promptInd >= 0) {
-			var beginInd = rowStr.indexOf("parseFloat");
-			if (beginInd >= 0) {
-				promptType = "numeric";
-				prompt = rowStr.substring(beginInd + 18, rowStr.lastIndexOf(","));
-				defaultValue = rowStr.substring(rowStr.lastIndexOf(",") + 2, rowStr.lastIndexOf(")") - 1);
-			}
-			else {
-				promptType = "text";
-				prompt = rowStr.substring(promptInd + 7, rowStr.lastIndexOf(","));
-				defaultValue = rowStr.substring(rowStr.lastIndexOf(",") + 2, rowStr.lastIndexOf(")"));
-			}
-			
-			if (prompt.charAt(0) == '"') {
-				if (prompt.length == 2) prompt = "";
-				else prompt = prompt.slice(1, prompt.length - 1);
-			}
-			
-			if (defaultValue.charAt(0) == '"') {
-				if (defaultValue.length == 2) defaultValue = "";
-				else defaultValue = defaultValue.slice(1, defaultValue.length - 1);
-			}
-			
-			console.log("Prompt: " + prompt);
-			console.log("Default Value: " + defaultValue);
-			
-			defaultPrompt = defaultValue;
-			
-			promptFunc(promptType, prompt);
-			
-			return true;
-		}
-		
-		return false;
-	}
-	
-	function promptFunc(promptType, promptStr) {
-		var cell = outputTable.rows[outputTable.rows.length - 1].cells[0];
-		cell.setAttribute("style", "height:1em");
-		cell.textContent += promptStr;
-		var row = outputTable.insertRow(outputTable.rows.length);
-		row.insertCell(0);
-		cell.contentEditable = false;
-		
-		cell = outputTable.rows[outputTable.rows.length - 1].cells[0];
-		cell.style.color = "red";
-		cell.contentEditable = true;
-
-		activePromptCellID = "fig" + figID + "TD" + (outputTable.rows.length - 1);
-		cell.setAttribute("id", activePromptCellID);
-		
-		if (promptType == "numeric") setupNumericPrompt(promptStr);
-		else setupStringPrompt(promptStr);
-		
-		row = outputTable.insertRow(outputTable.rows.length);
-		row.insertCell(0);
-		
-		return promptInput;
-	}
-	
-	function setupStringPrompt(prompt) {
-		var stringPad = new StringPad();
-		stringPad.open("String entry", prompt, stringPromptCallback, document.getElementById("fig" + figID + "Editor"));
-		if (runMode == true) clearInterval(intervalID);
-	}
-	
-	function stringPromptCallback(result) {
-		var cell = document.getElementById(activePromptCellID);	
-		
-		if (result === null) {
-			promptInput = defaultPrompt;
-			cell.textContent = defaultPrompt;
-		}
-		else {
-			promptInput = result;
-			cell.textContent = result;
-		}
-			
-		cell.contentEditable = false;
-		
-		jumpTo(2, currI);
-		
-		promptInterrupt = false;
-		
-		if (runMode == true) { runMode = false; runButton(); }
-		else walkButton();
-	}
-	
-	function setupNumericPrompt(prompt) {
-		var numPad = new NumberPad();
-		numPad.open(null, null, "Numeric Entry", prompt, true, 10, numericPromptCallback, document.getElementById("fig" + figID + "Editor"));
-		if (runMode == true) clearInterval(intervalID);
-	}
-	
-	function numericPromptCallback(result) {
-		var cell = document.getElementById(activePromptCellID);	
-		
-		if (result === null) {
-			promptInput = defaultPrompt;
-			cell.textContent = defaultPrompt;
-		}
-		else {
-			promptInput = parseFloat(result);
-			cell.textContent = result;
-		}
-			
-		cell.contentEditable = false;
-		
-		jumpTo(2, currI);
-		
-		promptInterrupt = false;
-		
-		if (runMode == true) { runMode = false; runButton(); }
-		else walkButton();
-	}
-	
-	function stopPrompt() {
-		console.log("Stop Prompt.");
-		var temp = promptInput;
-		promptInput = "";
-		return temp;
-	}
-	
-	function init(interpreter, scope) {
-		var wrapper = function (text) {
-			text = text ? text.toString() : '';
-			return interpreter.createPrimitive(alert(text));
-		};
-		interpreter.setProperty(scope, 'alert', interpreter.createNativeFunction(wrapper));
-
-		var wrapper2 = function (text1, text2) {
-			text1 = text1 ? text1.toString() : '';
-			text2 = text2 ? text2.toString() : '';
-			//return interpreter.createPrimitive(promptFunc(text1, text2));
-			return interpreter.createPrimitive(stopPrompt())
-		}
-		interpreter.setProperty(scope, 'prompt', interpreter.createNativeFunction(wrapper2));
-
-		var wrapper3 = function (text) {
-			text = text ? text.toString() : '';
-			//return interpreter.createPrimitive(outputTable.value += text);
-			return interpreter.createPrimitive(outputWrite(text));
-		};
-		interpreter.setProperty(scope, 'document1write', interpreter.createNativeFunction(wrapper3));
-
-		var wrapper4 = function (text) {
-			text = text ? text.toString() : '';
-			//return interpreter.createPrimitive(outputTable.value += text + "\n");
-			return interpreter.createPrimitive(outputWriteln(text));
-		};
-		interpreter.setProperty(scope, 'document1writeln', interpreter.createNativeFunction(wrapper4));
-
-		var wrapper5 = function () {	
-			//return interpreter.createPrimitive(outputTable.value += text + "\n");
-			return interpreter.createPrimitive(dummyVar++);
-		};
-		interpreter.setProperty(scope, 'dummyFunction', interpreter.createNativeFunction(wrapper5));
-	};
-	
-	function slideVarBox(dir) {
-		if (showVarBox == false) return;
-		
-		if (!slidDown && dir == "down") {
-			$("#fig" + figID + "OutVarBox").slideDown("medium", function() {
-				varBox.scrollTop = varBox.scrollHeight;
-				slidDown = true;
-			});
-		}
-		else if (slidDown && dir == "up") {
-			$("#fig" + figID + "OutVarBox").slideUp("medium");
-			slidDown = false;
-		}
-	}
-	
-	function updateVariables(mode, scope, leftValue, rightValue) {
-		var found = false;
-		if (mode == "add") {
-			for (var i = 0; i < varArr.length; i++) {
-				if (scope == varArr[i][0] && (varArr[i][1] == leftValue || varArr[i][1].data == leftValue)) {
-					if (varArr[i].length == 2) varrArr[i].push(rightValue);
-					else varArr[i][3] = rightValue;
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				
-				var dataType;
-				if (dataTypeArray[leftValue]) dataType = dataTypeArray[leftValue].toLowerCase();
-				
-				if(!dataType) dataType = (isString(rightValue)) ? "text" : "numeric";
-				
-				if (leftValue.data && rightValue.data) {
-					varArr.push([scope, leftValue.data, dataType, rightValue.data]);
-				}
-				else if (leftValue.data) {
-					varArr.push([scope, leftValue.data, dataType, rightValue]);
-				}
-				else if (rightValue.data) {
-					varArr.push([scope, leftValue, dataType, rightValue.data]);
-				}
-				else {
-					varArr.push([scope, leftValue, dataType, rightValue]);
-				}
-				
-				if (!scopeExists(scope)) scopeArr.push(scope);
-			}
-		}
-		else {
-			for (var i = 0; i < varArr.length; i++) {
-				if (scope == varArr[i][0] && (varArr[i][1] == leftValue || varArr[i][1].data == leftValue)) {
-					scope = varArr[i][0];
-					varArr.splice(i, 1);
-				}
-			}
-		}
-		
-		updateTable();
-	}
-	
-	function pollVariables() {
-		var scopeNum;
-		try {
-			scopeNum = getScopeNum(interpreter.getScope());
-		}
-		catch (err) {
-			return;
-		}
-		
-		var count = 0;
-		if (scopeNum < 0)
-			return;
-		
-		for (var i = 0; i < varArr.length; i++) {
-			if (getScopeNum(varArr[i][0]) > scopeNum) {
-				console.log("scoping");
-				updateVariables("del", varArr[i][0], varArr[i][1]); haltFlag = true;
-			}
-		}
-	}
-	
-	function getScopeNum(scope) {
-		for (var i = 0; i < scopeArr.length; i++) if (scopeArr[i] == scope) return i;
-		return -1;
-	}
-	
-	function scopeExists(scope) {
-		for (var i = 0; i < scopeArr.length; i++) if (scopeArr[i] == scope) return true;
-		return false;
-	}
-	
-	function clearTable() {
-		varTable.innerHTML = "";
-		return;
-	}
-	
-	function updateTable() { 
-		varTable.innerHTML = "";
-		var row;
-		var cell;
-		var scopeNum;
-		
-		if (showScope) {
-			row = varTable.insertRow(0);
-			for (var i = 0; i < 4; i++) {
-				cell = row.insertCell(i);
-				if (i == 0) cell.textContent = "level";
-				else if (i == 1) cell.textContent = "variable";
-				else if (i == 2) cell.textContent = "type";
-				else cell.textContent = "value";
-			}
-
-			
-			for (var i = 0; i < varArr.length; i++) {
-				row = varTable.insertRow(i + 1);
-				for (var j = 0; j < 4; j++) {
-					scopeNum = getScopeNum(varArr[i][0]);
-					if (scopeNum < 0) {
-						varArr.splice(i, 1);
-						break;
-					}
-					cell = row.insertCell(j);
-					
-					if (j == 0) cell.textContent = getScopeNum(varArr[i][0]);
-					else if (j == 1) cell.textContent = varArr[i][1];
-					else if (j == 2) cell.textContent = varArr[i][2];
-					else {
-						if (!varArr[i][3]) cell.textContent = "undefined";
-						else cell.textContent = varArr[i][3];
-					}
-				}
-			}
-		}
-		else {
-		
-			row = varTable.insertRow(0);
-			for (var i = 0; i < 3; i++) {
-				cell = row.insertCell(i);
-				if (i == 0) cell.textContent = "variable";
-				else if (i == 1) cell.textContent = "type";
-				else cell.textContent = "value";
-			}
-			
-			for (var i = 0; i < varArr.length; i++) {
-				row = varTable.insertRow(i + 1);
-				for (var j = 0; j < 3; j++) {
-					scopeNum = getScopeNum(varArr[i][0]);
-					if (scopeNum < 0) {
-						varArr.splice(i, 1);
-						break;
-					}
-					cell = row.insertCell(j);
-					if (j == 0) cell.textContent = varArr[i][1];
-					else if (j == 1) cell.textContent = varArr[i][2];
-					else cell.textContent = varArr[i][3];
-				}
-			}
-		}
-	}
-	
-	var toString = Object.prototype.toString;
-
-	isString = function (obj) {
-		return toString.call(obj) == '[object String]';
+	this.clearEditor = clearEditor;
+	function clearEditor(){
+		console.log("here2");
+		editor.clearEditor();
+		editor = new Editor("fig" + figID + "Editor", chapterName, exerciseNum, true, true, 1, true, false, false);
 	}
 }

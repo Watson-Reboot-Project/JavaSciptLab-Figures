@@ -45,16 +45,15 @@
 .savePopup{
 	position: absolute;
 	right: 0;
-   	background-color: #DDDDDD;
+    background-color: #DDDDDD;
 	display: none;
 	font-family: arial;
 }
 
 .codeTable{
-	overflow-y: hidden;
+	overflow: auto;
 	display: inline;
 	height: 100%;
-	width: 100%;
 }
 
 table {
